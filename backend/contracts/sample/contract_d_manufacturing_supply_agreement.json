@@ -1,7 +1,7 @@
 [
   {
     "name": "labor_law_compliance",
-    "value": "Chunk(id='a35390b9-2204-449f-925a-7b945a4bd7d2', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.31540733575820923, left=0.12312406301498413, right=0.8463467359542847, top=0.23777586221694946), page=0), markdown=\"<a id='a35390b9-2204-449f-925a-7b945a4bd7d2'></a>\\n\\n# Product Quality and Compliance\\n\\nSupplier shall manufacture the Products in compliance with ISO 9001:2015 and RoHS requirements. Supplier shall comply with all applicable product safety, environmental, and labor laws.\", type='text')",
+    "value": "Chunk(id='339d4857-b1bc-49e2-b687-b6f933891b02', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.31540733575820923, left=0.12312406301498413, right=0.8463467359542847, top=0.23777586221694946), page=0), markdown=\"<a id='339d4857-b1bc-49e2-b687-b6f933891b02'></a>\\n\\n# Product Quality and Compliance\\n\\nSupplier shall manufacture the Products in compliance with ISO 9001:2015 and RoHS requirements. Supplier shall comply with all applicable product safety, environmental, and labor laws.\", type='text')",
     "evidence": {
       "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/contract_d_manufacturing_supply_agreement.pdf",
       "page": 1,
@@ -10,7 +10,7 @@
   },
   {
     "name": "tax_withholding_clause",
-    "value": "Chunk(id='3379da84-a590-4fca-b3b4-384e32817f25', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.6031252145767212, left=0.12359631061553955, right=0.8675281405448914, top=0.5374127626419067), page=0), markdown=\"<a id='3379da84-a590-4fca-b3b4-384e32817f25'></a>\\n\\n# Price and Payment\\n\\nPrice as set forth in Schedule C. Payments in USD, net 30 days. Payments exclusive of applicable taxes, duties, and tariffs. Buyer responsible for withholding taxes required by law.\", type='text')",
+    "value": "Chunk(id='596f4ecf-3356-418b-9e04-d8f919c99c5e', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.6031252145767212, left=0.12359631061553955, right=0.8675281405448914, top=0.5374127626419067), page=0), markdown=\"<a id='596f4ecf-3356-418b-9e04-d8f919c99c5e'></a>\\n\\n# Price and Payment\\n\\nPrice as set forth in Schedule C. Payments in USD, net 30 days. Payments exclusive of applicable taxes, duties, and tariffs. Buyer responsible for withholding taxes required by law.\", type='text')",
     "evidence": {
       "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/contract_d_manufacturing_supply_agreement.pdf",
       "page": 1,
@@ -19,7 +19,7 @@
   },
   {
     "name": "termination_notice",
-    "value": "Chunk(id='b9c556cc-c48c-4d7a-a9b9-9fd914b9d8e7', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.7731492519378662, left=0.12374088168144226, right=0.8146038055419922, top=0.708552360534668), page=0), markdown=\"<a id='b9c556cc-c48c-4d7a-a9b9-9fd914b9d8e7'></a>\\n\\n# Confidentiality\\n\\nEach Party agrees to maintain confidentiality of proprietary information disclosed under this Agreement. Obligations survive for five years following termination.\", type='text')",
+    "value": "Chunk(id='ae911f7d-8770-4132-a8c3-bd5123a65ee7', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.7731492519378662, left=0.12374088168144226, right=0.8146038055419922, top=0.708552360534668), page=0), markdown=\"<a id='ae911f7d-8770-4132-a8c3-bd5123a65ee7'></a>\\n\\n# Confidentiality\\n\\nEach Party agrees to maintain confidentiality of proprietary information disclosed under this Agreement. Obligations survive for five years following termination.\", type='text')",
     "evidence": {
       "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/contract_d_manufacturing_supply_agreement.pdf",
       "page": 1,
@@ -28,7 +28,7 @@
   },
   {
     "name": "termination_notice",
-    "value": "Chunk(id='90c56bdf-36a3-444b-845e-d9ddad0a6a97', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.8587406277656555, left=0.12348240613937378, right=0.8686023354530334, top=0.7933200001716614), page=0), markdown=\"<a id='90c56bdf-36a3-444b-845e-d9ddad0a6a97'></a>\\n\\n# Term and Termination\\n\\nInitial term of three years unless earlier terminated. Either Party may terminate for cause with thirty days' notice for material breach, or upon insolvency or bankruptcy of the other Party.\", type='text')",
+    "value": "Chunk(id='16bea638-e2d5-413d-b524-b091a5a4a862', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.8587406277656555, left=0.12348240613937378, right=0.8686023354530334, top=0.7933200001716614), page=0), markdown=\"<a id='16bea638-e2d5-413d-b524-b091a5a4a862'></a>\\n\\n# Term and Termination\\n\\nInitial term of three years unless earlier terminated. Either Party may terminate for cause with thirty days' notice for material breach, or upon insolvency or bankruptcy of the other Party.\", type='text')",
     "evidence": {
       "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/contract_d_manufacturing_supply_agreement.pdf",
       "page": 1,
@@ -37,7 +37,7 @@
   },
   {
     "name": "jurisdiction",
-    "value": "Chunk(id='fd269c99-ab8b-4393-8e8a-fc73607a4bb3', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.9070716500282288, left=0.12656652927398682, right=0.5763851404190063, top=0.8797191977500916), page=0), markdown=\"<a id='fd269c99-ab8b-4393-8e8a-fc73607a4bb3'></a>\\n\\nGoverning Law and Dispute Resolution\", type='text')",
+    "value": "Chunk(id='e571063b-f6b0-4765-b3b7-8195cd04cbe6', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.9070716500282288, left=0.12656652927398682, right=0.5763851404190063, top=0.8797191977500916), page=0), markdown=\"<a id='e571063b-f6b0-4765-b3b7-8195cd04cbe6'></a>\\n\\nGoverning Law and Dispute Resolution\", type='text')",
     "evidence": {
       "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/contract_d_manufacturing_supply_agreement.pdf",
       "page": 1,
@@ -46,7 +46,7 @@
   },
   {
     "name": "force_majeure",
-    "value": "Chunk(id='addfead0-1d82-4641-83cf-d980fe65b88f', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.21307100355625153, left=0.12270590662956238, right=0.8766145706176758, top=0.14741449058055878), page=1), markdown=\"<a id='addfead0-1d82-4641-83cf-d980fe65b88f'></a>\\n\\n# Force Majeure\\n\\nNeither Party shall be liable for delay or failure to perform due to causes beyond reasonable control, including natural disasters, war, embargoes, or government restrictions.\", type='text')",
+    "value": "Chunk(id='252b2f1f-3cfb-4c1b-a281-3359f1bccf9a', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.21307100355625153, left=0.12270590662956238, right=0.8766145706176758, top=0.14741449058055878), page=1), markdown=\"<a id='252b2f1f-3cfb-4c1b-a281-3359f1bccf9a'></a>\\n\\n# Force Majeure\\n\\nNeither Party shall be liable for delay or failure to perform due to causes beyond reasonable control, including natural disasters, war, embargoes, or government restrictions.\", type='text')",
     "evidence": {
       "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/contract_d_manufacturing_supply_agreement.pdf",
       "page": 1,

@@ -4,18 +4,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from pathlib import Path
 import json
+import os
+from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import agent endpoints
-from .agents.inkeep_api import router as agents_router
+from agents.inkeep_api import router as agents_router
 
-from .landingai_client import extract_fields, extract_tables
-from .checker import check
-from .ai_compliance_checker import ai_compliance_checker
-from .models.schemas import ComplianceFlag, ContractField, Evidence
-from .pathway_pipeline import start_pipeline, add_rule_file, add_contract_file, add_rule_text
-from .risk_correlation import risk_engine
-from .config import Config
-from . import __init__ as _pkg  # noqa
+from landingai_client import extract_fields, extract_tables
+from checker import check
+from ai_compliance_checker import ai_compliance_checker
+from simplified_compliance import simplified_engine
+from multi_agent_system import multi_agent_system
+from models.schemas import ComplianceFlag, ContractField, Evidence
+from pathway_pipeline import start_pipeline, add_rule_file, add_contract_file, add_rule_text
+from risk_correlation import risk_engine
+from config import Config
+from data_anonymizer import anonymizer
 
 APP_TITLE = "Global Compliance Copilot API"
 app = FastAPI(title=APP_TITLE)
@@ -138,7 +146,7 @@ def explain_flag(id: str, region: str = "EU") -> dict:
         if f.name == field_name:
             field_ev = f.evidence
             break
-    from .retriever import retrieve
+    from retriever import retrieve
     hits = retrieve(category, region, top_k=1)
     rule_text = hits[0][0] if hits else ""
     return {
@@ -194,6 +202,215 @@ def save_rule(payload: dict) -> dict:
     except Exception:
         pass
     return {"ok": True, "name": name, "path": str(p)}
+
+# ---------- Multi-Agent System ----------
+
+@app.post("/initialize_multi_agent")
+async def initialize_multi_agent_system():
+    """Initialize the multi-agent system"""
+    try:
+        await multi_agent_system.initialize_system()
+        return {"success": True, "message": "Multi-agent system initialized successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to initialize multi-agent system: {str(e)}")
+
+@app.get("/multi_agent_analysis")
+async def multi_agent_compliance_analysis(
+    region: str = Query("EU", pattern="^(EU|US|IN|UK)$"),
+    domain: str = Query("general"),
+    contract_path: Optional[str] = None,
+):
+    """Multi-agent collaborative compliance analysis"""
+    if contract_path:
+        cpath = Path(contract_path)
+        if not cpath.exists():
+            raise HTTPException(status_code=400, detail="contract_path not found")
+    else:
+        cpath = _latest_contract()
+        if not cpath:
+            raise HTTPException(status_code=400, detail="no contracts uploaded")
+    
+    try:
+        result = await multi_agent_system.process_compliance_task(str(cpath), region, domain)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Multi-agent analysis failed: {str(e)}")
+
+@app.get("/agent_status")
+def get_agent_status():
+    """Get status of all agents in the multi-agent system"""
+    try:
+        status = {
+            "system_initialized": len(multi_agent_system.orchestrator.agent_capabilities) > 0,
+            "registered_agents": list(multi_agent_system.orchestrator.agent_capabilities.keys()),
+            "learning_data": multi_agent_system.system_learning,
+            "communication_history": len(multi_agent_system.orchestrator.communication_protocol.communication_history)
+        }
+        return status
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get agent status: {str(e)}")
+
+# ---------- Data Anonymization ----------
+
+@app.post("/anonymize_data")
+async def anonymize_compliance_data(
+    data: dict,
+    method: str = Query("mask", description="Anonymization method: hash, mask, replace, remove"),
+    anonymize_flags: bool = Query(True, description="Anonymize compliance flags"),
+    anonymize_correlations: bool = Query(True, description="Anonymize risk correlations")
+):
+    """Anonymize sensitive data in compliance analysis results"""
+    try:
+        anonymized_data = data.copy()
+        
+        # Anonymize compliance flags if present
+        if anonymize_flags and 'flags' in data:
+            anonymized_data['flags'] = anonymizer.anonymize_flags(data['flags'], method)
+        
+        # Anonymize risk correlations if present
+        if anonymize_correlations and 'risk_correlations' in data:
+            anonymized_data['risk_correlations'] = anonymizer.anonymize_risk_correlations(data['risk_correlations'], method)
+        
+        # Add anonymization metadata
+        anonymized_data['anonymization_applied'] = True
+        anonymized_data['anonymization_method'] = method
+        anonymized_data['anonymization_timestamp'] = datetime.now().isoformat()
+        
+        return anonymized_data
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to anonymize data: {str(e)}")
+
+@app.post("/anonymize_text")
+async def anonymize_text_input(
+    text: str = Form(..., description="Text to anonymize"),
+    method: str = Query("mask", description="Anonymization method: hash, mask, replace, remove")
+):
+    """Anonymize sensitive data in text input"""
+    try:
+        anonymized_text = anonymizer.anonymize_text(text, method)
+        
+        return {
+            "original_text": text,
+            "anonymized_text": anonymized_text,
+            "method": method,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to anonymize text: {str(e)}")
+
+@app.get("/anonymization_info")
+def get_anonymization_info():
+    """Get information about available anonymization methods"""
+    return {
+        "available_methods": {
+            "hash": "Hash sensitive data with SHA-256",
+            "mask": "Mask data while preserving structure",
+            "replace": "Replace with generic placeholders",
+            "remove": "Remove sensitive data entirely"
+        },
+        "supported_data_types": list(anonymizer.patterns.keys()),
+        "description": "Data anonymization protects sensitive information while preserving compliance analysis functionality"
+    }
+
+# ---------- Simplified Compliance (Claude + LandingAI ADE + Pathway) ----------
+
+@app.get("/simplified_analysis")
+def simplified_compliance_analysis(
+    region: str = Query("EU", pattern="^(EU|US|IN|UK)$"),
+    domain: str = Query("general"),
+    contract_path: Optional[str] = None,
+):
+    """Simplified compliance analysis using Claude + LandingAI ADE + Pathway"""
+    if contract_path:
+        cpath = Path(contract_path)
+        if not cpath.exists():
+            raise HTTPException(status_code=400, detail="contract_path not found")
+    else:
+        cpath = _latest_contract()
+        if not cpath:
+            raise HTTPException(status_code=400, detail="no contracts uploaded")
+    
+    analysis_result = simplified_engine.analyze_document(str(cpath), region, domain)
+    return analysis_result
+
+# ---------- Smart Document Correction ----------
+
+@app.get("/analyze_document")
+def analyze_document_for_corrections(
+    region: str = Query("EU", pattern="^(EU|US|IN|UK)$"),
+    contract_path: Optional[str] = None,
+):
+    """Analyze document and identify correction opportunities using LandingAI ADE and Pathway"""
+    if contract_path:
+        cpath = Path(contract_path)
+        if not cpath.exists():
+            raise HTTPException(status_code=400, detail="contract_path not found")
+    else:
+        cpath = _latest_contract()
+        if not cpath:
+            raise HTTPException(status_code=400, detail="no contracts uploaded")
+    
+    analysis_result = smart_corrector.analyze_document_for_corrections(str(cpath), region)
+    return analysis_result
+
+@app.get("/generate_corrected_document")
+def generate_corrected_document(
+    region: str = Query("EU", pattern="^(EU|US|IN|UK)$"),
+    contract_path: Optional[str] = None,
+):
+    """Generate corrected document with tracked changes"""
+    if contract_path:
+        cpath = Path(contract_path)
+        if not cpath.exists():
+            raise HTTPException(status_code=400, detail="contract_path not found")
+    else:
+        cpath = _latest_contract()
+        if not cpath:
+            raise HTTPException(status_code=400, detail="no contracts uploaded")
+    
+    # First analyze the document
+    analysis_result = smart_corrector.analyze_document_for_corrections(str(cpath), region)
+    
+    # Then generate corrected document
+    corrected_document = smart_corrector.generate_corrected_document(analysis_result)
+    
+    return corrected_document
+
+@app.get("/download_corrected_document")
+def download_corrected_document(
+    region: str = Query("EU", pattern="^(EU|US|IN|UK)$"),
+    contract_path: Optional[str] = None,
+):
+    """Download corrected document as PDF"""
+    if contract_path:
+        cpath = Path(contract_path)
+        if not cpath.exists():
+            raise HTTPException(status_code=400, detail="contract_path not found")
+    else:
+        cpath = _latest_contract()
+        if not cpath:
+            raise HTTPException(status_code=400, detail="no contracts uploaded")
+    
+    # Generate corrected document
+    analysis_result = smart_corrector.analyze_document_for_corrections(str(cpath), region)
+    corrected_document = smart_corrector.generate_corrected_document(analysis_result)
+    
+    # Create downloadable file (simplified - in real implementation, would generate actual PDF)
+    corrected_filename = f"corrected_{Path(cpath).stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    corrected_path = Path("backend/corrected_documents") / corrected_filename
+    corrected_path.parent.mkdir(exist_ok=True)
+    
+    with open(corrected_path, 'w', encoding='utf-8') as f:
+        f.write(corrected_document["corrected_content"])
+    
+    return {
+        "corrected_document": corrected_document,
+        "download_path": str(corrected_path),
+        "download_url": f"/download/{corrected_filename}",
+        "filename": corrected_filename
+    }
 
 # ---------- Novel Features ----------
 
@@ -270,7 +487,7 @@ def search_pathway(
 ):
     """Search documents using Pathway's hybrid search"""
     try:
-        from .pathway_pipeline import hybrid_search
+        from pathway_pipeline import hybrid_search
         results = hybrid_search(query, top_k)
         
         # Format results for frontend
@@ -297,7 +514,7 @@ def search_pathway(
 def get_pathway_stats():
     """Get Pathway server statistics"""
     try:
-        from .pathway_pipeline import get_live_document_count, get_recent_changes
+        from pathway_pipeline import get_live_document_count, get_recent_changes
         import time
         
         # Get real-time document count
@@ -329,7 +546,7 @@ def get_pathway_stats():
 def get_live_activity():
     """Get real-time activity feed"""
     try:
-        from .pathway_pipeline import get_recent_changes
+        from pathway_pipeline import get_recent_changes
         import time
         
         recent_changes = get_recent_changes()
@@ -364,7 +581,7 @@ def add_document_live(
 ):
     """Add a new document to the live index"""
     try:
-        from .pathway_pipeline import add_rule_text, add_contract_file
+        from pathway_pipeline import add_rule_text, add_contract_file
         from pathlib import Path
         import time
         

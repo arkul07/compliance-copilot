@@ -6,8 +6,8 @@ This is a novel feature that goes beyond basic compliance checking
 import logging
 from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime
-from .models.schemas import ContractField, ComplianceFlag, Evidence
-from .pathway_pipeline import hybrid_search
+from models.schemas import ContractField, ComplianceFlag, Evidence
+from pathway_pipeline import hybrid_search
 
 logger = logging.getLogger(__name__)
 

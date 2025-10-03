@@ -8,8 +8,8 @@ import hashlib
 import time
 from typing import List, Dict, Any, Optional
 from pathlib import Path
-from .models.schemas import ContractField, Evidence
-from .config import Config
+from models.schemas import ContractField, Evidence
+from config import Config
 
 # Simple in-memory cache for LandingAI responses
 _landingai_cache = {}

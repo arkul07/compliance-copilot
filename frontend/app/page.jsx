@@ -24,13 +24,12 @@ export default function Home() {
       }
       
       .gradient-bg {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #ffffff;
       }
       
       .glass-effect {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: #ffffff;
+        border: 1px solid #d1d5db;
       }
       
       .card-hover {
@@ -43,9 +42,8 @@ export default function Home() {
       }
       
       .section-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: #ffffff;
+        border: 1px solid #d1d5db;
         border-radius: 16px;
         padding: 24px;
         margin-bottom: 24px;
@@ -59,27 +57,28 @@ export default function Home() {
       }
       
       .button-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #000000;
         color: white;
-        border: none;
+        border: 1px solid #000000;
         padding: 12px 24px;
         border-radius: 12px;
         cursor: pointer;
         font-size: 14px;
         font-weight: 600;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         transition: all 0.3s ease;
       }
       
       .button-primary:hover {
         transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        background: #333333;
       }
       
       .button-secondary {
-        background: rgba(255, 255, 255, 0.9);
-        color: #374151;
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: #ffffff;
+        color: #000000;
+        border: 1px solid #d1d5db;
         padding: 10px 20px;
         border-radius: 10px;
         cursor: pointer;
@@ -89,16 +88,17 @@ export default function Home() {
       }
       
       .button-secondary:hover {
-        background: rgba(255, 255, 255, 1);
+        background: #f3f4f6;
         transform: translateY(-1px);
       }
       
       .region-selector {
         display: flex;
         gap: 8px;
-        background: rgba(255, 255, 255, 0.1);
+        background: #f3f4f6;
         padding: 4px;
         border-radius: 12px;
+        border: 1px solid #d1d5db;
       }
       
       .region-option {
@@ -114,9 +114,9 @@ export default function Home() {
       }
       
       .region-option.active {
-        background: rgba(255, 255, 255, 0.9);
-        color: #1f2937;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        background: #000000;
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       }
       
       .stats-grid {
@@ -135,11 +135,11 @@ export default function Home() {
       }
       
       .flag-card {
-        background: rgba(255, 255, 255, 0.95);
+        background: #ffffff;
         border-radius: 12px;
         padding: 16px;
         margin-bottom: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid #d1d5db;
         transition: all 0.3s ease;
       }
       
@@ -160,6 +160,27 @@ export default function Home() {
   const [riskCorrelations, setRiskCorrelations] = useState([]);
   const [systemStatus, setSystemStatus] = useState(null);
   const [tables, setTables] = useState([]);
+  
+  // Smart Document Correction state
+  const [documentAnalysis, setDocumentAnalysis] = useState(null);
+  const [correctedDocument, setCorrectedDocument] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Simplified Compliance state
+  const [simplifiedAnalysis, setSimplifiedAnalysis] = useState(null);
+  const [isSimplifiedAnalyzing, setIsSimplifiedAnalyzing] = useState(false);
+  const [domain, setDomain] = useState("general");
+  
+  // Simplified explain modal state
+  const [showSimplifiedExplainModal, setShowSimplifiedExplainModal] = useState(false);
+  const [simplifiedExplainData, setSimplifiedExplainData] = useState(null);
+  const [loadingSimplifiedExplain, setLoadingSimplifiedExplain] = useState(false);
+  
+  // Data anonymization state
+  const [anonymizationEnabled, setAnonymizationEnabled] = useState(false);
+  const [anonymizationMethod, setAnonymizationMethod] = useState("mask");
+  const [anonymizationInfo, setAnonymizationInfo] = useState(null);
   
   // Pathway features state
   const [pathwaySearchQuery, setPathwaySearchQuery] = useState("");
@@ -213,15 +234,15 @@ export default function Home() {
         uploadFormData.append("file", contractFile);
         
         const uploadResponse = await fetch(`${API_BASE}/upload_contract`, {
-          method: "POST",
+      method: "POST",
           body: uploadFormData,
         });
         
         if (!uploadResponse.ok) {
           console.error("Failed to upload contract");
           alert("❌ Failed to upload contract. Please try again.");
-      return;
-    }
+        return;
+      }
     
         const uploadData = await uploadResponse.json();
         console.log("Contract uploaded successfully:", uploadData);
@@ -234,7 +255,7 @@ export default function Home() {
       
       if (response.ok) {
         const data = await response.json();
-        setFlags(data);
+      setFlags(data);
         console.log(`✅ Found ${data.length} compliance flags for ${region} region`);
         
         // Show LandingAI ADE activity
@@ -289,6 +310,70 @@ export default function Home() {
     setShowExplainModal(false);
     setExplainData(null);
     setLoadingExplain(false);
+  };
+
+  const explainSimplified = async (flagId) => {
+    setLoadingSimplifiedExplain(true);
+    setShowSimplifiedExplainModal(true);
+    
+    try {
+      const response = await fetch(`${API_BASE}/explain?id=${flagId}&region=${region}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSimplifiedExplainData(data);
+      } else {
+        setSimplifiedExplainData({ 
+          error: `Failed to get explanation: ${response.status} ${response.statusText}` 
+        });
+      }
+    } catch (error) {
+      setSimplifiedExplainData({ 
+        error: `Request failed: ${error.message}` 
+      });
+    } finally {
+      setLoadingSimplifiedExplain(false);
+    }
+  };
+
+  const closeSimplifiedExplainModal = () => {
+    setShowSimplifiedExplainModal(false);
+    setSimplifiedExplainData(null);
+  };
+
+  // Anonymization functions
+  const loadAnonymizationInfo = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/anonymization_info`);
+      if (response.ok) {
+        const data = await response.json();
+        setAnonymizationInfo(data);
+      }
+    } catch (error) {
+      console.error("Failed to load anonymization info:", error);
+    }
+  };
+
+  const anonymizeData = async (data) => {
+    if (!anonymizationEnabled) return data;
+    
+    try {
+      const response = await fetch(`${API_BASE}/anonymize_data?method=${anonymizationMethod}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (response.ok) {
+        const anonymizedData = await response.json();
+        return anonymizedData;
+      }
+    } catch (error) {
+      console.error("Failed to anonymize data:", error);
+    }
+    
+    return data;
   };
 
   const downloadJSON = () => {
@@ -457,10 +542,90 @@ export default function Home() {
     }
   };
 
+  // Smart Document Correction functions
+  const analyzeDocument = async () => {
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch(`${API_BASE}/analyze_document?region=${region}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDocumentAnalysis(data);
+        console.log("Document analysis:", data);
+      } else {
+        console.error("Document analysis failed");
+      }
+    } catch (error) {
+      console.error("Error analyzing document:", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const generateCorrectedDocument = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch(`${API_BASE}/generate_corrected_document?region=${region}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCorrectedDocument(data);
+        console.log("Corrected document:", data);
+      } else {
+        console.error("Document generation failed");
+      }
+    } catch (error) {
+      console.error("Error generating corrected document:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const downloadCorrectedDocument = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/download_corrected_document?region=${region}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Create download link
+        const blob = new Blob([data.corrected_document.corrected_content], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+    a.href = url;
+        a.download = data.filename;
+        document.body.appendChild(a);
+    a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        console.error("Download failed");
+      }
+    } catch (error) {
+      console.error("Error downloading corrected document:", error);
+    }
+  };
+
+  // Simplified Compliance functions
+  const runSimplifiedAnalysis = async () => {
+    setIsSimplifiedAnalyzing(true);
+    try {
+      const response = await fetch(`${API_BASE}/simplified_analysis?region=${region}&domain=${domain}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSimplifiedAnalysis(data);
+        console.log("Simplified analysis:", data);
+      } else {
+        console.error("Simplified analysis failed");
+      }
+    } catch (error) {
+      console.error("Error running simplified analysis:", error);
+    } finally {
+      setIsSimplifiedAnalyzing(false);
+    }
+  };
+
   // Auto-refresh Pathway stats and live activity
   useEffect(() => {
     getPathwayStats();
     getLiveActivity();
+    loadAnonymizationInfo();
     
     const interval = setInterval(() => {
       getPathwayStats();
@@ -471,14 +636,15 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="gradient-bg" style={{ minHeight: "100vh" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff" }}>
       {/* Header */}
-      <div className="glass-effect" style={{ 
+      <div style={{ 
         padding: "20px 0", 
-        borderBottom: "1px solid rgba(255,255,255,0.1)",
+        borderBottom: "1px solid #e5e7eb",
         position: "sticky",
         top: 0,
-        zIndex: 100
+        zIndex: 100,
+        backgroundColor: "#ffffff"
       }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -487,10 +653,7 @@ export default function Home() {
                 margin: 0, 
                 fontSize: "32px", 
                 fontWeight: "800", 
-                color: "#1f2937",
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent"
+                color: "#000000"
               }}>
                 🤖 Compliance Copilot
               </h1>
@@ -500,24 +663,51 @@ export default function Home() {
             </div>
              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                <div style={{ 
-                 background: "rgba(255,255,255,0.9)", 
+                 background: "#f3f4f6", 
                  padding: "6px 12px", 
                  borderRadius: "20px",
                  fontSize: "12px",
                  fontWeight: "600",
-                 color: "#374151"
+                 color: "#000000",
+                 border: "1px solid #d1d5db"
                }}>
                  {region} Region
                </div>
+               
+               {/* Data Anonymization Toggle */}
+               <div style={{ 
+                 background: anonymizationEnabled ? "#fef2f2" : "#f3f4f6",
+                 border: `1px solid ${anonymizationEnabled ? "#fecaca" : "#d1d5db"}`,
+                 padding: "6px 12px", 
+                 borderRadius: "20px",
+                 fontSize: "12px",
+                 fontWeight: "600",
+                 color: "#000000",
+                 cursor: "pointer",
+                 display: "flex",
+                 alignItems: "center",
+                 gap: "6px"
+               }}
+               onClick={() => setAnonymizationEnabled(!anonymizationEnabled)}
+               title={anonymizationEnabled ? "Data anonymization enabled" : "Click to enable data anonymization"}
+               >
+                 <div style={{
+                   width: "8px",
+                   height: "8px",
+                   borderRadius: "50%",
+                   background: anonymizationEnabled ? "#dc2626" : "#6b7280"
+                 }}></div>
+                 🔒 {anonymizationEnabled ? "Anonymized" : "Anonymize"}
+               </div>
                {landingaiStatus && (
                  <div style={{ 
-                   background: landingaiStatus.status === "active" || landingaiStatus.status === "available" ? "#f0fdf4" : "#fef2f2",
-                   border: `1px solid ${landingaiStatus.status === "active" || landingaiStatus.status === "available" ? "#bbf7d0" : "#fecaca"}`,
+                   background: "#f3f4f6",
+                   border: "1px solid #d1d5db",
                    padding: "6px 12px", 
                    borderRadius: "20px",
                    fontSize: "12px",
                    fontWeight: "600",
-                   color: landingaiStatus.status === "active" || landingaiStatus.status === "available" ? "#16a34a" : "#dc2626",
+                   color: "#000000",
                    display: "flex",
                    alignItems: "center",
                    gap: "6px"
@@ -526,7 +716,7 @@ export default function Home() {
                      width: "8px",
                      height: "8px",
                      borderRadius: "50%",
-                     background: landingaiStatus.status === "active" || landingaiStatus.status === "available" ? "#16a34a" : "#dc2626"
+                     background: "#000000"
                    }}></div>
                    🤖 LandingAI ADE
                  </div>
@@ -572,8 +762,8 @@ export default function Home() {
                     {r}
                   </button>
                 ))}
+          </div>
         </div>
-      </div>
 
             {/* File Upload */}
             <div>
@@ -592,10 +782,49 @@ export default function Home() {
                   fontSize: "14px"
                 }}
               />
-            </div>
           </div>
+        </div>
 
-           <div style={{ marginTop: "20px", display: "flex", gap: "12px" }}>
+           {/* Data Anonymization Settings */}
+          {anonymizationEnabled && (
+            <div style={{ 
+              background: "#fef2f2", 
+              padding: "16px", 
+              borderRadius: "8px", 
+              marginBottom: "16px",
+              border: "1px solid #fecaca"
+            }}>
+              <h3 style={{ margin: "0 0 12px 0", fontSize: "14px", fontWeight: "600", color: "#1f2937" }}>
+                🔒 Data Anonymization Settings
+              </h3>
+              <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "8px" }}>
+                <label style={{ fontSize: "12px", color: "#6b7280", fontWeight: "500" }}>
+                  Method:
+                </label>
+                <select
+                  value={anonymizationMethod}
+                  onChange={(e) => setAnonymizationMethod(e.target.value)}
+                  style={{
+                    padding: "6px 12px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "4px",
+                    fontSize: "12px",
+                    background: "white"
+                  }}
+                >
+                  <option value="mask">Mask (Preserve Structure)</option>
+                  <option value="hash">Hash (SHA-256)</option>
+                  <option value="replace">Replace (Generic Placeholders)</option>
+                  <option value="remove">Remove (Redact)</option>
+                </select>
+              </div>
+              <div style={{ fontSize: "11px", color: "#6b7280" }}>
+                {anonymizationInfo && anonymizationInfo.available_methods[anonymizationMethod]}
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: "20px", display: "flex", gap: "12px" }}>
              <button 
                onClick={runCheck} 
                className="button-primary"
@@ -653,14 +882,14 @@ export default function Home() {
         {flags.length > 0 && (
           <div className="section-card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <div>
+          <div>
                 <h2 style={{ margin: "0 0 4px 0", fontSize: "20px", fontWeight: "600", color: "#1f2937" }}>
                   🚩 Compliance Flags ({flags.length})
                 </h2>
                 <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
                   AI-powered compliance analysis results
                 </p>
-              </div>
+          </div>
               <div style={{ display: "flex", gap: "8px" }}>
                 <button onClick={downloadJSON} className="button-secondary">
                   📄 JSON
@@ -676,23 +905,23 @@ export default function Home() {
                 const getFlagColors = (riskLevel) => {
                   if (riskLevel === "HIGH") {
                     return {
-                      background: "#fef2f2",
-                      border: "#fecaca", 
-                      text: "#dc2626",
+                      background: "#f3f4f6",
+                      border: "#000000", 
+                      text: "#000000",
                       priority: "🔴"
                     };
                   } else if (riskLevel === "MEDIUM") {
                     return {
-                      background: "#fffbeb",
-                      border: "#fed7aa",
-                      text: "#d97706", 
+                      background: "#f9fafb",
+                      border: "#6b7280",
+                      text: "#000000", 
                       priority: "🟡"
                     };
                   } else {
                     return {
-                      background: "#f0fdf4",
-                      border: "#bbf7d0",
-                      text: "#16a34a",
+                      background: "#ffffff",
+                      border: "#d1d5db",
+                      text: "#000000",
                       priority: "🟢"
                     };
                   }
@@ -715,7 +944,7 @@ export default function Home() {
                           marginBottom: "4px"
                         }}>
                           {flag.id}
-                        </div>
+            </div>
                         <div style={{ 
                           fontSize: "12px", 
                           color: colors.text,
@@ -726,8 +955,8 @@ export default function Home() {
                           display: "inline-block"
                         }}>
                           {flag.risk_level} RISK
-                        </div>
-                      </div>
+          </div>
+        </div>
                       <div style={{ 
                         fontSize: "12px", 
                         color: "#6b7280",
@@ -1092,7 +1321,7 @@ export default function Home() {
                  }}></div>
                  <div style={{ fontWeight: "600", color: "#1f2937" }}>
                    {landingaiStatus.message}
-                 </div>
+        </div>
                </div>
                <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
                  {landingaiStatus.fields_extracted}
@@ -1141,6 +1370,480 @@ export default function Home() {
              </div>
            </div>
          )}
+
+        {/* Simplified Compliance (Claude + LandingAI ADE + Pathway) */}
+        <div className="section-card">
+          <h2 style={{ margin: "0 0 16px 0", fontSize: "20px", fontWeight: "600", color: "#1f2937" }}>
+            🤖 Simplified Compliance Analysis
+          </h2>
+          <div style={{ 
+            background: "rgba(139, 69, 19, 0.1)", 
+            padding: "16px", 
+            borderRadius: "8px", 
+            marginBottom: "16px",
+            border: "1px solid rgba(139, 69, 19, 0.2)"
+          }}>
+            <div style={{ fontSize: "14px", color: "#8b4513", fontWeight: "500", marginBottom: "8px" }}>
+              🧠 Claude + LandingAI ADE + Pathway Integration
+            </div>
+            <div style={{ fontSize: "13px", color: "#8b4513", lineHeight: "1.5" }}>
+              Claude generates rules → LandingAI ADE extracts fields → Pathway finds relevant rules → Display flags & correlations
+            </div>
+          </div>
+          
+          {/* Claude Status */}
+          <div style={{ marginBottom: "20px" }}>
+            <div style={{ 
+              background: "rgba(16, 185, 129, 0.1)", 
+              padding: "12px", 
+              borderRadius: "6px", 
+              border: "1px solid rgba(16, 185, 129, 0.2)",
+              marginBottom: "16px"
+            }}>
+              <div style={{ fontSize: "14px", color: "#059669", fontWeight: "500" }}>
+                ✅ Claude API Ready
+              </div>
+              <div style={{ fontSize: "12px", color: "#047857" }}>
+                Claude is configured and ready to generate compliance rules
+              </div>
+            </div>
+          </div>
+
+          {/* Domain Selection */}
+          <div style={{ marginBottom: "20px" }}>
+            <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", fontWeight: "600", color: "#1f2937" }}>
+              🏢 Domain Selection
+            </h3>
+            <select
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              style={{
+                padding: "12px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "14px",
+                background: "white"
+              }}
+            >
+              <option value="general">General</option>
+              <option value="employment">Employment</option>
+              <option value="privacy">Privacy</option>
+              <option value="supply_chain">Supply Chain</option>
+              <option value="financial">Financial</option>
+              <option value="healthcare">Healthcare</option>
+            </select>
+          </div>
+
+          {/* Analysis Button */}
+          <div style={{ marginBottom: "20px" }}>
+            <button
+              onClick={runSimplifiedAnalysis}
+              disabled={isSimplifiedAnalyzing}
+              style={{
+                background: isSimplifiedAnalyzing ? "#9ca3af" : "#8b4513",
+                color: "white",
+                border: "none",
+                padding: "12px 24px",
+                borderRadius: "8px",
+                cursor: isSimplifiedAnalyzing ? "not-allowed" : "pointer",
+                fontWeight: "600",
+                fontSize: "14px"
+              }}
+            >
+              {isSimplifiedAnalyzing ? "⏳ Analyzing..." : "🔍 Run Simplified Analysis"}
+            </button>
+          </div>
+
+          {/* Analysis Results */}
+          {simplifiedAnalysis && (
+            <div style={{ marginBottom: "20px" }}>
+              <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", fontWeight: "600", color: "#1f2937" }}>
+                📊 Analysis Results
+              </h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "20px" }}>
+                <div style={{ background: "rgba(255,255,255,0.8)", padding: "12px", borderRadius: "6px" }}>
+                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Claude Rules</div>
+                  <div style={{ fontSize: "18px", fontWeight: "600", color: "#1f2937" }}>
+                    {simplifiedAnalysis.claude_rules?.length || 0}
+                  </div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.8)", padding: "12px", borderRadius: "6px" }}>
+                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Relevant Rules</div>
+                  <div style={{ fontSize: "18px", fontWeight: "600", color: "#1f2937" }}>
+                    {simplifiedAnalysis.relevant_rules?.length || 0}
+                  </div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.8)", padding: "12px", borderRadius: "6px" }}>
+                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Compliance Flags</div>
+                  <div style={{ fontSize: "18px", fontWeight: "600", color: "#1f2937" }}>
+                    {simplifiedAnalysis.compliance_flags?.length || 0}
+                  </div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.8)", padding: "12px", borderRadius: "6px" }}>
+                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Risk Correlations</div>
+                  <div style={{ fontSize: "18px", fontWeight: "600", color: "#1f2937" }}>
+                    {simplifiedAnalysis.risk_correlations?.length || 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* Claude Rules */}
+              {simplifiedAnalysis.claude_rules && simplifiedAnalysis.claude_rules.length > 0 && (
+                <div style={{ marginBottom: "20px" }}>
+                  <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", fontWeight: "600", color: "#1f2937" }}>
+                    🧠 Claude Generated Rules
+                  </h4>
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    {simplifiedAnalysis.claude_rules.slice(0, 3).map((rule, index) => (
+                      <div key={index} style={{
+                        background: "rgba(255,255,255,0.8)",
+                        padding: "12px",
+                        borderRadius: "6px",
+                        border: "1px solid rgba(0,0,0,0.1)"
+                      }}>
+                        <div style={{ fontWeight: "600", color: "#1f2937", marginBottom: "4px" }}>
+                          {rule.title}
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                          {rule.description}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#9ca3af", marginTop: "4px" }}>
+                          {rule.category} • {rule.risk_level}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Compliance Flags */}
+              {simplifiedAnalysis.compliance_flags && simplifiedAnalysis.compliance_flags.length > 0 && (
+                <div style={{ marginBottom: "20px" }}>
+                  <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", fontWeight: "600", color: "#1f2937" }}>
+                    ⚠️ Compliance Flags ({simplifiedAnalysis.compliance_flags.length})
+                  </h4>
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    {simplifiedAnalysis.compliance_flags.slice(0, 5).map((flag, index) => {
+                      const getFlagColors = (riskLevel) => {
+                        if (riskLevel === "HIGH") {
+                          return {
+                            background: "#fef2f2",     // Light red background
+                            border: "#fecaca",         // Light red border
+                            text: "#000000",
+                            priority: "🔴"
+                          };
+                        } else if (riskLevel === "MEDIUM") {
+                          return {
+                            background: "#fffbeb",     // Light yellow background
+                            border: "#fde68a",         // Light yellow border
+                            text: "#000000", 
+                            priority: "🟡"
+                          };
+                        } else {
+                          return {
+                            background: "#f0fdf4",     // Light green background
+                            border: "#bbf7d0",         // Light green border
+                            text: "#000000",
+                            priority: "🟢"
+                          };
+                        }
+                      };
+                      
+                      const colors = getFlagColors(flag.risk_level);
+                      
+                      return (
+                        <div key={index} style={{
+                          background: colors.background,
+                          border: `2px solid ${colors.border}`,
+                          padding: "12px",
+                          borderRadius: "6px",
+                          position: "relative"
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                            <div>
+                              <div style={{ fontWeight: "600", color: colors.text, marginBottom: "4px" }}>
+                                {flag.rule_title}
+                              </div>
+                              <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>
+                                {flag.description}
+                              </div>
+                              <div style={{ fontSize: "11px", color: "#9ca3af" }}>
+                                {flag.field_name} • {flag.risk_level} • Pathway Score: {flag.pathway_score?.toFixed(2) || "N/A"}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => explainSimplified(flag.id)}
+                              style={{
+                                background: "#000000",
+                                color: "white",
+                                border: "none",
+                                padding: "6px 12px",
+                                borderRadius: "4px",
+                                fontSize: "11px",
+                                cursor: "pointer",
+                                fontWeight: "500"
+                              }}
+                            >
+                              Explain
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Risk Correlations */}
+              {simplifiedAnalysis.risk_correlations && simplifiedAnalysis.risk_correlations.length > 0 && (
+                <div style={{ marginBottom: "20px" }}>
+                  <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", fontWeight: "600", color: "#1f2937" }}>
+                    🔗 Risk Correlations
+                  </h4>
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    {simplifiedAnalysis.risk_correlations.map((correlation, index) => {
+                      const getRiskColors = (riskLevel) => {
+                        if (riskLevel === "HIGH") {
+                          return {
+                            background: "#fef2f2",     // Light red background
+                            border: "#fecaca",         // Light red border
+                            text: "#000000",
+                            priority: "🔴"
+                          };
+                        } else if (riskLevel === "MEDIUM") {
+                          return {
+                            background: "#fffbeb",     // Light yellow background
+                            border: "#fde68a",         // Light yellow border
+                            text: "#000000", 
+                            priority: "🟡"
+                          };
+                        } else {
+                          return {
+                            background: "#f0fdf4",     // Light green background
+                            border: "#bbf7d0",         // Light green border
+                            text: "#000000",
+                            priority: "🟢"
+                          };
+                        }
+                      };
+                      
+                      const colors = getRiskColors(correlation.risk_level);
+                      
+                      return (
+                        <div key={index} style={{
+                          background: colors.background,
+                          border: `2px solid ${colors.border}`,
+                          padding: "12px",
+                          borderRadius: "6px",
+                          position: "relative"
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                            <div>
+                              <div style={{ fontWeight: "600", color: colors.text, marginBottom: "4px" }}>
+                                {correlation.correlation_type?.replace(/_/g, ' ').toUpperCase()}
+                              </div>
+                              <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>
+                                {correlation.description}
+                              </div>
+                              <div style={{ fontSize: "11px", color: "#9ca3af" }}>
+                                {correlation.flag_count} flags • {correlation.category} • {correlation.risk_level}
+                              </div>
+                            </div>
+                            <div style={{ 
+                              fontSize: "16px",
+                              marginLeft: "8px"
+                            }}>
+                              {colors.priority}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Smart Document Correction */}
+        <div className="section-card">
+          <h2 style={{ margin: "0 0 16px 0", fontSize: "20px", fontWeight: "600", color: "#1f2937" }}>
+            🚀 Smart Document Correction
+          </h2>
+          <div style={{ 
+            background: "rgba(59, 130, 246, 0.1)", 
+            padding: "16px", 
+            borderRadius: "8px", 
+            marginBottom: "16px",
+            border: "1px solid rgba(59, 130, 246, 0.2)"
+          }}>
+            <div style={{ fontSize: "14px", color: "#1e40af", fontWeight: "500", marginBottom: "8px" }}>
+              🤖 AI-Powered Document Correction
+            </div>
+            <div style={{ fontSize: "13px", color: "#1e40af", lineHeight: "1.5" }}>
+              Use LandingAI ADE and Pathway to automatically analyze and correct compliance issues in your documents.
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
+            <button
+              onClick={analyzeDocument}
+              disabled={isAnalyzing}
+              style={{
+                background: isAnalyzing ? "#9ca3af" : "#3b82f6",
+                color: "white",
+                border: "none",
+                padding: "12px 24px",
+                borderRadius: "8px",
+                cursor: isAnalyzing ? "not-allowed" : "pointer",
+                fontWeight: "600",
+                fontSize: "14px"
+              }}
+            >
+              {isAnalyzing ? "⏳ Analyzing..." : "🔍 Analyze Document"}
+            </button>
+            
+            <button
+              onClick={generateCorrectedDocument}
+              disabled={isGenerating || !documentAnalysis}
+              style={{
+                background: isGenerating || !documentAnalysis ? "#9ca3af" : "#10b981",
+                color: "white",
+                border: "none",
+                padding: "12px 24px",
+                borderRadius: "8px",
+                cursor: isGenerating || !documentAnalysis ? "not-allowed" : "pointer",
+                fontWeight: "600",
+                fontSize: "14px"
+              }}
+            >
+              {isGenerating ? "⏳ Generating..." : "📝 Generate Corrections"}
+            </button>
+            
+            {correctedDocument && (
+              <button
+                onClick={downloadCorrectedDocument}
+                style={{
+                  background: "#f59e0b",
+                  color: "white",
+                  border: "none",
+                  padding: "12px 24px",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "14px"
+                }}
+              >
+                📥 Download Corrected Document
+              </button>
+            )}
+          </div>
+
+          {/* Document Analysis Results */}
+          {documentAnalysis && (
+            <div style={{ marginBottom: "20px" }}>
+              <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", fontWeight: "600", color: "#1f2937" }}>
+                📊 Analysis Results
+              </h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
+                <div style={{ background: "rgba(255,255,255,0.8)", padding: "12px", borderRadius: "6px" }}>
+                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Correction Opportunities</div>
+                  <div style={{ fontSize: "18px", fontWeight: "600", color: "#1f2937" }}>
+                    {documentAnalysis.correction_opportunities?.length || 0}
+                  </div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.8)", padding: "12px", borderRadius: "6px" }}>
+                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Compliance Flags</div>
+                  <div style={{ fontSize: "18px", fontWeight: "600", color: "#1f2937" }}>
+                    {documentAnalysis.compliance_flags?.length || 0}
+                  </div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.8)", padding: "12px", borderRadius: "6px" }}>
+                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Risk Correlations</div>
+                  <div style={{ fontSize: "18px", fontWeight: "600", color: "#1f2937" }}>
+                    {documentAnalysis.risk_correlations?.length || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Correction Opportunities */}
+          {documentAnalysis?.correction_opportunities && documentAnalysis.correction_opportunities.length > 0 && (
+            <div style={{ marginBottom: "20px" }}>
+              <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", fontWeight: "600", color: "#1f2937" }}>
+                🔧 Correction Opportunities
+              </h3>
+              <div style={{ display: "grid", gap: "12px" }}>
+                {documentAnalysis.correction_opportunities.map((correction, index) => (
+                  <div key={index} style={{
+                    background: "rgba(255,255,255,0.8)",
+                    padding: "16px",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(0,0,0,0.1)"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                      <div style={{
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        background: correction.risk_level === "HIGH" ? "#dc2626" : "#d97706"
+                      }}></div>
+                      <div style={{ fontWeight: "600", color: "#1f2937" }}>
+                        {correction.type?.replace(/_/g, ' ').toUpperCase()}
+                      </div>
+                      <div style={{
+                        background: correction.risk_level === "HIGH" ? "#dc2626" : "#d97706",
+                        color: "white",
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        fontSize: "10px",
+                        fontWeight: "600"
+                      }}>
+                        {correction.risk_level}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
+                      {correction.reason}
+                    </div>
+                    <div style={{ fontSize: "13px", color: "#1f2937", fontWeight: "500", marginBottom: "4px" }}>
+                      💡 Suggestion: {correction.correction_suggestion}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#6b7280", fontStyle: "italic" }}>
+                      Template: {correction.correction_template}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Corrected Document Results */}
+          {correctedDocument && (
+            <div style={{ marginBottom: "20px" }}>
+              <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", fontWeight: "600", color: "#1f2937" }}>
+                ✅ Corrected Document Generated
+              </h3>
+              <div style={{ background: "rgba(16, 185, 129, 0.1)", padding: "16px", borderRadius: "8px", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
+                <div style={{ fontSize: "14px", color: "#059669", fontWeight: "500", marginBottom: "8px" }}>
+                  🎉 Document Successfully Corrected!
+                </div>
+                <div style={{ fontSize: "13px", color: "#047857", lineHeight: "1.5" }}>
+                  Changes Applied: {correctedDocument.changes_applied} | 
+                  Generation Time: {new Date(correctedDocument.generation_timestamp).toLocaleTimeString()}
+                </div>
+                {correctedDocument.change_summary && (
+                  <div style={{ marginTop: "12px", fontSize: "12px", color: "#047857" }}>
+                    <div style={{ fontWeight: "500", marginBottom: "4px" }}>Summary:</div>
+                    <div>High Priority: {correctedDocument.change_summary.high_priority_corrections} | 
+                         Medium Priority: {correctedDocument.change_summary.medium_priority_corrections}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* How to Use Modal */}
         {showHowToUseModal && (
@@ -1339,6 +2042,212 @@ export default function Home() {
                     Close
                   </button>
                 </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Simplified Explain Modal */}
+      {showSimplifiedExplainModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: "white",
+            borderRadius: "12px",
+            padding: "24px",
+            maxWidth: "800px",
+            maxHeight: "80vh",
+            width: "90%",
+            overflow: "auto",
+            position: "relative",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.2)"
+          }}>
+            {/* Close button */}
+            <button 
+              onClick={closeSimplifiedExplainModal}
+              style={{
+                position: "absolute",
+                top: "12px",
+                right: "12px",
+                background: "none",
+                border: "none",
+                fontSize: "20px",
+                cursor: "pointer",
+                padding: "4px",
+                borderRadius: "50%",
+                width: "32px",
+                height: "32px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Content */}
+            <h3 style={{ marginTop: 0, marginBottom: "20px", color: "#1f2937" }}>
+              📋 Simplified Compliance Explanation
+            </h3>
+
+            {loadingSimplifiedExplain ? (
+              <div style={{ textAlign: "center", padding: "40px" }}>
+                <div style={{ fontSize: "18px", color: "#6b7280" }}>⏳ Loading explanation...</div>
+              </div>
+            ) : simplifiedExplainData ? (
+              <div>
+                {simplifiedExplainData.error ? (
+                  <div style={{ 
+                    background: "#fef2f2", 
+                    border: "1px solid #fecaca", 
+                    padding: "16px", 
+                    borderRadius: "8px",
+                    color: "#dc2626"
+                  }}>
+                    ❌ {simplifiedExplainData.error}
+                  </div>
+                ) : (
+                  <div>
+                    {/* Flag Details */}
+                    <div style={{ marginBottom: "20px" }}>
+                      <h4 style={{ margin: "0 0 8px 0", color: "#1f2937" }}>Flag Details</h4>
+                      <div style={{ 
+                        background: "#f9fafb", 
+                        padding: "12px", 
+                        borderRadius: "6px",
+                        border: "1px solid #d1d5db"
+                      }}>
+                        <div style={{ marginBottom: "8px" }}>
+                          <strong>ID:</strong> {simplifiedExplainData.id}
+                        </div>
+                        <div style={{ marginBottom: "8px" }}>
+                          <strong>Field:</strong> {simplifiedExplainData.field_name}
+                        </div>
+                        <div style={{ marginBottom: "8px" }}>
+                          <strong>Value:</strong> {simplifiedExplainData.field_value}
+                        </div>
+                        <div style={{ marginBottom: "8px" }}>
+                          <strong>Risk Level:</strong> {simplifiedExplainData.risk_level}
+                        </div>
+                        <div>
+                          <strong>Category:</strong> {simplifiedExplainData.category}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Rule Snippet */}
+                    {simplifiedExplainData.rule_snippet && (
+                      <div style={{ marginBottom: "20px" }}>
+                        <h4 style={{ margin: "0 0 8px 0", color: "#1f2937" }}>Compliance Rule</h4>
+                        <div style={{ 
+                          background: "#f9fafb", 
+                          padding: "12px", 
+                          borderRadius: "6px",
+                          border: "1px solid #d1d5db",
+                          fontSize: "14px",
+                          lineHeight: "1.5"
+                        }}>
+                          {simplifiedExplainData.rule_snippet}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Risk Correlation */}
+                    {simplifiedAnalysis && simplifiedAnalysis.risk_correlations && simplifiedAnalysis.risk_correlations.length > 0 && (
+                      <div style={{ marginBottom: "20px" }}>
+                        <h4 style={{ margin: "0 0 8px 0", color: "#1f2937" }}>Risk Correlations</h4>
+                        <div style={{ display: "grid", gap: "8px" }}>
+                          {simplifiedAnalysis.risk_correlations.slice(0, 3).map((correlation, index) => {
+                            const getRiskColors = (riskLevel) => {
+                              if (riskLevel === "HIGH") {
+                                return {
+                                  background: "#fef2f2",     // Light red background
+                                  border: "#fecaca",         // Light red border
+                                  text: "#000000",
+                                  priority: "🔴"
+                                };
+                              } else if (riskLevel === "MEDIUM") {
+                                return {
+                                  background: "#fffbeb",     // Light yellow background
+                                  border: "#fde68a",         // Light yellow border
+                                  text: "#000000", 
+                                  priority: "🟡"
+                                };
+                              } else {
+                                return {
+                                  background: "#f0fdf4",     // Light green background
+                                  border: "#bbf7d0",         // Light green border
+                                  text: "#000000",
+                                  priority: "🟢"
+                                };
+                              }
+                            };
+                            
+                            const colors = getRiskColors(correlation.risk_level);
+                            
+                            return (
+                              <div key={index} style={{
+                                background: colors.background,
+                                border: `2px solid ${colors.border}`,
+                                padding: "12px",
+                                borderRadius: "6px",
+                                position: "relative"
+                              }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                  <div>
+                                    <div style={{ fontWeight: "600", color: colors.text, marginBottom: "4px" }}>
+                                      {correlation.correlation_type?.replace(/_/g, ' ').toUpperCase()}
+                                    </div>
+                                    <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>
+                                      Risk Level: {correlation.risk_level}
+                                    </div>
+                                    <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                                      {correlation.description}
+                                    </div>
+                                  </div>
+                                  <div style={{ 
+                                    fontSize: "16px",
+                                    marginLeft: "8px"
+                                  }}>
+                                    {colors.priority}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Section */}
+                    <div style={{ display: "flex", gap: "8px", marginTop: "20px" }}>
+                      <button 
+                        onClick={closeSimplifiedExplainModal}
+                        style={{
+                          background: "#6b7280",
+                          color: "white",
+                          border: "none",
+                          padding: "8px 16px",
+                          borderRadius: "6px",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : null}
           </div>

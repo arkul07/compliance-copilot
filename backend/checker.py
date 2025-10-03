@@ -1,6 +1,6 @@
 from typing import List
-from .models.schemas import ComplianceFlag, Evidence, ContractField
-from .retriever import retrieve
+from models.schemas import ComplianceFlag, Evidence, ContractField
+from retriever import retrieve
 
 CATEGORIES = ["privacy", "labor", "tax"]
 

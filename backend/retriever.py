@@ -1,5 +1,5 @@
 from typing import List, Tuple
-from .pathway_pipeline import hybrid_search
+from pathway_pipeline import hybrid_search
 
 KEYWORDS = {
     "privacy": ["gdpr", "personal data", "processing", "controller", "processor"],

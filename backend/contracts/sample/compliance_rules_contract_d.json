@@ -1,0 +1,20 @@
+[
+  {
+    "name": "tax_withholding_clause",
+    "value": "Chunk(id='ee9425e0-639c-4851-8762-057a5ad94eb3', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.4147789180278778, left=0.1220015287399292, right=0.8153573274612427, top=0.34854617714881897), page=0), markdown=\"<a id='ee9425e0-639c-4851-8762-057a5ad94eb3'></a>\\n\\n## Rule 3: Tax Withholding Compliance\\n\\nBuyer responsible for withholding taxes as required by law. Risk Level: MEDIUM if unclear.\\nEvidence: Tax records, invoices with WHT noted.\", type='text')",
+    "evidence": {
+      "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/compliance_rules_contract_d.pdf",
+      "page": 1,
+      "section": "LandingAI ADE"
+    }
+  },
+  {
+    "name": "jurisdiction",
+    "value": "Chunk(id='70ab5fd2-edba-4d83-80c7-e9ecf30dfe74', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.5869016051292419, left=0.12266120314598083, right=0.8675796985626221, top=0.5195332169532776), page=0), markdown=\"<a id='70ab5fd2-edba-4d83-80c7-e9ecf30dfe74'></a>\\n\\n**Rule 5: Cross-Border Dispute Resolution**\\n\\nDisputes resolved by SIAC arbitration under Singapore law. Risk Level: MEDIUM if jurisdiction not clearly stated. Evidence: Governing law clause, arbitration agreement.\", type='text')",
+    "evidence": {
+      "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/compliance_rules_contract_d.pdf",
+      "page": 1,
+      "section": "LandingAI ADE"
+    }
+  }
+]

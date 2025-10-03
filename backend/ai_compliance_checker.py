@@ -5,10 +5,10 @@ Enhanced compliance analysis with semantic understanding
 
 import logging
 from typing import List, Dict, Any, Tuple
-from .models.schemas import ComplianceFlag, Evidence, ContractField
-from .landingai_client import extract_fields, extract_tables
-from .retriever import retrieve
-from .risk_correlation import risk_engine
+from models.schemas import ComplianceFlag, Evidence, ContractField
+from landingai_client import extract_fields, extract_tables
+from retriever import retrieve
+from risk_correlation import risk_engine
 
 logger = logging.getLogger(__name__)
 
