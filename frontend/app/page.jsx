@@ -5,6 +5,18 @@ import { useEffect, useMemo, useState } from "react";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8001";
 
 export default function Home() {
+  // Add CSS animation for spinner
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
   const [region, setRegion] = useState("EU");
   const [flags, setFlags] = useState([]);
   const [contractFile, setContractFile] = useState(null);
@@ -17,6 +29,11 @@ export default function Home() {
   // Modal states
   const [showRiskInfoModal, setShowRiskInfoModal] = useState(false);
   const [showTableInfoModal, setShowTableInfoModal] = useState(false);
+  
+  // Loading states
+  const [isAnalyzingRisk, setIsAnalyzingRisk] = useState(false);
+  const [isExtractingTables, setIsExtractingTables] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
 
   const [ruleFile, setRuleFile] = useState(null);
   const [ruleText, setRuleText] = useState("");
@@ -208,6 +225,7 @@ export default function Home() {
 
   // Novel Features Functions
   async function analyzeRiskCorrelation() {
+    setIsAnalyzingRisk(true);
     try {
       const r = await fetch(`${API_BASE}/risk_correlation?region=${region}`);
       if (!r.ok) {
@@ -220,10 +238,13 @@ export default function Home() {
       alert(`🔍 Risk Correlation Analysis Complete!\n\nFound ${data.correlations?.length || 0} correlations.\nOverall Risk: ${data.summary?.overall_risk || 'Unknown'}`);
     } catch (error) {
       alert(`❌ Risk correlation error: ${error.message}`);
+    } finally {
+      setIsAnalyzingRisk(false);
     }
   }
 
   async function extractTables() {
+    setIsExtractingTables(true);
     try {
       const r = await fetch(`${API_BASE}/extract_tables`);
       if (!r.ok) {
@@ -236,10 +257,13 @@ export default function Home() {
       alert(`📊 Table Extraction Complete!\n\nExtracted ${data.tables?.length || 0} tables from the document.`);
     } catch (error) {
       alert(`❌ Table extraction error: ${error.message}`);
+    } finally {
+      setIsExtractingTables(false);
     }
   }
 
   async function checkSystemStatus() {
+    setIsCheckingStatus(true);
     try {
       const r = await fetch(`${API_BASE}/system_status`);
       if (!r.ok) return;
@@ -247,6 +271,8 @@ export default function Home() {
       setSystemStatus(data);
     } catch (error) {
       console.error("System status check failed:", error);
+    } finally {
+      setIsCheckingStatus(false);
     }
   }
 
@@ -349,17 +375,76 @@ export default function Home() {
       {/* Novel Features Section */}
       <section style={box}>
         <h3>🚀 Novel Features (Hackathon)</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-          <button onClick={analyzeRiskCorrelation} style={{...buttonStyle, background: "#7c3aed", padding: "10px 16px"}}>
-            🔗 Risk Correlation Analysis
+        
+        {/* Progress Indicator */}
+        {(isAnalyzingRisk || isExtractingTables || isCheckingStatus) && (
+          <div style={{
+            background: "#f0f9ff",
+            border: "1px solid #bae6fd",
+            borderRadius: "8px",
+            padding: "12px",
+            marginBottom: "16px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px"
+          }}>
+            <div style={{
+              width: "20px",
+              height: "20px",
+              border: "2px solid #3b82f6",
+              borderTop: "2px solid transparent",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite"
+            }}></div>
+            <span style={{ color: "#1e40af", fontWeight: "500" }}>
+              {isAnalyzingRisk && "🔍 Analyzing risk correlations..."}
+              {isExtractingTables && "📊 Extracting tables with LandingAI ADE..."}
+              {isCheckingStatus && "🔧 Checking system status..."}
+            </span>
+          </div>
+        )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            <button 
+              onClick={analyzeRiskCorrelation} 
+              disabled={isAnalyzingRisk}
+              style={{
+                ...buttonStyle, 
+                background: isAnalyzingRisk ? "#9ca3af" : "#7c3aed", 
+                padding: "10px 16px",
+                opacity: isAnalyzingRisk ? 0.7 : 1,
+                cursor: isAnalyzingRisk ? "not-allowed" : "pointer"
+              }}
+            >
+              {isAnalyzingRisk ? "⏳ Analyzing..." : "🔗 Risk Correlation Analysis"}
+            </button>
+            <button 
+              onClick={extractTables} 
+              disabled={isExtractingTables}
+              style={{
+                ...buttonStyle, 
+                background: isExtractingTables ? "#9ca3af" : "#dc2626", 
+                padding: "10px 16px",
+                opacity: isExtractingTables ? 0.7 : 1,
+                cursor: isExtractingTables ? "not-allowed" : "pointer"
+              }}
+            >
+              {isExtractingTables ? "⏳ Extracting..." : "📊 Extract Tables (LandingAI ADE)"}
+            </button>
+          </div>
+          <button 
+            onClick={checkSystemStatus} 
+            disabled={isCheckingStatus}
+            style={{
+              ...buttonStyle, 
+              background: isCheckingStatus ? "#9ca3af" : "#6b7280", 
+              padding: "8px 16px", 
+              fontSize: "14px",
+              opacity: isCheckingStatus ? 0.7 : 1,
+              cursor: isCheckingStatus ? "not-allowed" : "pointer"
+            }}
+          >
+            {isCheckingStatus ? "⏳ Checking..." : "🔧 Check System Status"}
           </button>
-          <button onClick={extractTables} style={{...buttonStyle, background: "#dc2626", padding: "10px 16px"}}>
-            📊 Extract Tables (LandingAI ADE)
-          </button>
-        </div>
-        <button onClick={checkSystemStatus} style={{...buttonStyle, background: "#6b7280", padding: "8px 16px", fontSize: "14px"}}>
-          🔧 Check System Status
-        </button>
       </section>
 
       <section style={box}>

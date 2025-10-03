@@ -4,10 +4,16 @@ Uses DPT-2 model for structured extraction from financial documents
 """
 import os
 import logging
+import hashlib
+import time
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from .models.schemas import ContractField, Evidence
 from .config import Config
+
+# Simple in-memory cache for LandingAI responses
+_landingai_cache = {}
+CACHE_TTL = 300  # 5 minutes cache
 
 # Try to import LandingAI ADE, fallback if not available
 try:
@@ -51,17 +57,37 @@ def extract_fields(pdf_path: str) -> List[ContractField]:
     """
     logger.info(f"Extracting fields from: {pdf_path}")
     
+    # Check cache first
+    cache_key = hashlib.md5(f"fields_{pdf_path}".encode()).hexdigest()
+    if cache_key in _landingai_cache:
+        cache_entry = _landingai_cache[cache_key]
+        if time.time() - cache_entry['timestamp'] < CACHE_TTL:
+            logger.info("Returning cached field extraction results")
+            return cache_entry['data']
+    
     # Try LandingAI ADE first
     ade_client = get_ade_client()
     if ade_client:
         try:
-            return extract_with_ade(ade_client, pdf_path)
+            result = extract_with_ade(ade_client, pdf_path)
+            # Cache the result
+            _landingai_cache[cache_key] = {
+                'data': result,
+                'timestamp': time.time()
+            }
+            return result
         except Exception as e:
             logger.error(f"ADE extraction failed: {e}")
             logger.info("Falling back to basic extraction")
     
     # Fallback to basic extraction
-    return extract_basic_fields(pdf_path)
+    result = extract_basic_fields(pdf_path)
+    # Cache the fallback result too
+    _landingai_cache[cache_key] = {
+        'data': result,
+        'timestamp': time.time()
+    }
+    return result
 
 def extract_with_ade(ade_client, pdf_path: str) -> List[ContractField]:
     """
@@ -223,6 +249,16 @@ def extract_tables(pdf_path: str) -> List[Dict[str, Any]]:
     Extract tables from PDF using LandingAI ADE
     This is particularly useful for financial statements and compliance matrices
     """
+    logger.info(f"Extracting tables from: {pdf_path}")
+    
+    # Check cache first
+    cache_key = hashlib.md5(f"tables_{pdf_path}".encode()).hexdigest()
+    if cache_key in _landingai_cache:
+        cache_entry = _landingai_cache[cache_key]
+        if time.time() - cache_entry['timestamp'] < CACHE_TTL:
+            logger.info("Returning cached table extraction results")
+            return cache_entry['data']
+    
     ade_client = get_ade_client()
     if not ade_client:
         logger.warning("LandingAI ADE not available for table extraction")
@@ -282,6 +318,12 @@ def extract_tables(pdf_path: str) -> List[Dict[str, Any]]:
                 }
             ]
             tables = enhanced_tables
+        
+        # Cache the result
+        _landingai_cache[cache_key] = {
+            'data': tables,
+            'timestamp': time.time()
+        }
         
         logger.info(f"LandingAI ADE extracted {len(tables)} tables")
         return tables
