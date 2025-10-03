@@ -5,8 +5,12 @@ from typing import List, Optional
 from pathlib import Path
 import json
 
+# Import agent endpoints
+from .agents.inkeep_api import router as agents_router
+
 from .landingai_client import extract_fields, extract_tables
 from .checker import check
+from .ai_compliance_checker import ai_compliance_checker
 from .models.schemas import ComplianceFlag, ContractField, Evidence
 from .pathway_pipeline import start_pipeline, add_rule_file, add_contract_file, add_rule_text
 from .risk_correlation import risk_engine
@@ -19,11 +23,14 @@ app = FastAPI(title=APP_TITLE)
 # ---------- CORS for Next.js ----------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include agent endpoints
+app.include_router(agents_router)
 
 BASE_DIR = Path(__file__).parent
 CONTRACTS_DIR = BASE_DIR / "contracts" / "sample"
@@ -92,7 +99,7 @@ async def upload_contract(file: UploadFile = File(...)) -> dict:
 # ---------- Check + Explain ----------
 @app.get("/check", response_model=List[ComplianceFlag])
 def run_check(
-    region: str = Query("EU", pattern="^(EU|US|IN)$"),
+    region: str = Query("EU", pattern="^(EU|US|IN|UK)$"),
     contract_path: Optional[str] = None,
 ):
     if contract_path:
@@ -104,8 +111,17 @@ def run_check(
         if not cpath:
             raise HTTPException(status_code=400, detail="no contracts uploaded")
     fields = extract_fields(str(cpath))
-    flags = check(fields, region)
-    return flags
+    
+    # Use AI-powered compliance checking
+    flags = ai_compliance_checker.check_compliance_ai(fields, region)
+    
+    # Also run traditional checking for comparison
+    traditional_flags = check(fields, region)
+    
+    # Combine results (AI flags take precedence)
+    all_flags = flags + [f for f in traditional_flags if not any(af.id == f.id for af in flags)]
+    
+    return all_flags
 
 @app.get("/explain")
 def explain_flag(id: str, region: str = "EU") -> dict:
@@ -123,7 +139,7 @@ def explain_flag(id: str, region: str = "EU") -> dict:
             field_ev = f.evidence
             break
     from .retriever import retrieve
-    hits = retrieve(category, top_k=1)
+    hits = retrieve(category, region, top_k=1)
     rule_text = hits[0][0] if hits else ""
     return {
         "id": id,
@@ -183,7 +199,7 @@ def save_rule(payload: dict) -> dict:
 
 @app.get("/risk_correlation")
 def analyze_risk_correlation(
-    region: str = Query("EU", pattern="^(EU|US|IN)$"),
+    region: str = Query("EU", pattern="^(EU|US|IN|UK)$"),
     contract_path: Optional[str] = None,
 ):
     """Analyze cross-document risk correlations - Novel Feature"""
@@ -222,10 +238,18 @@ def extract_document_tables(
             raise HTTPException(status_code=400, detail="no contracts uploaded")
     
     tables = extract_tables(str(cpath))
+    
+    # AI-powered table compliance analysis
+    compliance_tables = ai_compliance_checker.extract_tables_for_compliance(str(cpath))
+    
     return {
         "contract_path": str(cpath),
         "tables": tables,
-        "count": len(tables)
+        "count": len(tables),
+        "ai_analysis": {
+            "compliance_tables": compliance_tables,
+            "compliance_issues_found": len(compliance_tables)
+        }
     }
 
 @app.get("/system_status")

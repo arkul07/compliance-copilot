@@ -315,10 +315,30 @@ def hybrid_search(query: str, top_k: int = 3) -> List[Tuple[str, float]]:
     query_lower = query.lower()
     query_words = [w for w in re.findall(r'\b\w+\b', query_lower) if len(w) > 2]
     
-    # Search in rules directory
-    rules_dir = Path("backend/rules")
-    if rules_dir.exists():
+    # Search in rules directory - use absolute path for reliability
+    import os
+    current_dir = os.getcwd()
+    
+    # Try to find the backend/rules directory
+    rules_dir = None
+    possible_paths = [
+        Path("backend/rules"),
+        Path("rules"),
+        Path("../../backend/rules"),
+        Path("../../../backend/rules"),
+        Path("/Users/aryakulkarni/Downloads/compliance-copilot/backend/rules")
+    ]
+    
+    for path in possible_paths:
+        if path.exists():
+            rules_dir = path
+            break
+    
+    if rules_dir:
+        logger.info(f"Searching in rules directory: {rules_dir}")
+        file_count = 0
         for file_path in rules_dir.rglob("*.md"):
+            file_count += 1
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
@@ -356,6 +376,10 @@ def hybrid_search(query: str, top_k: int = 3) -> List[Tuple[str, float]]:
                         results.append((snippet, float(score)))
             except Exception as e:
                 logger.warning(f"Error reading {file_path}: {e}")
+        
+        logger.info(f"Processed {file_count} files, found {len(results)} matches")
+    else:
+        logger.warning("No rules directory found")
     
     # Search in contracts directory
     contracts_dir = Path("backend/contracts")

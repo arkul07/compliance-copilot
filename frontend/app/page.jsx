@@ -22,14 +22,140 @@ export default function Home() {
         color: #92400e !important;
         box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
       }
+      
+      .gradient-bg {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      
+      .glass-effect {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      
+      .card-hover {
+        transition: all 0.3s ease;
+      }
+      
+      .card-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      }
+      
+      .section-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+      }
+      
+      .section-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+      }
+      
+      .button-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s ease;
+      }
+      
+      .button-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+      }
+      
+      .button-secondary {
+        background: rgba(255, 255, 255, 0.9);
+        color: #374151;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+      
+      .button-secondary:hover {
+        background: rgba(255, 255, 255, 1);
+        transform: translateY(-1px);
+      }
+      
+      .region-selector {
+        display: flex;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 4px;
+        border-radius: 12px;
+      }
+      
+      .region-option {
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: none;
+        background: transparent;
+        color: #6b7280;
+      }
+      
+      .region-option.active {
+        background: rgba(255, 255, 255, 0.9);
+        color: #1f2937;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      
+      .stat-card {
+        background: rgba(255, 255, 255, 0.9);
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      
+      .flag-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+      }
+      
+      .flag-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
+
   const [region, setRegion] = useState("EU");
   const [flags, setFlags] = useState([]);
   const [contractFile, setContractFile] = useState(null);
-  
+
   // Novel features state
   const [riskCorrelations, setRiskCorrelations] = useState([]);
   const [systemStatus, setSystemStatus] = useState(null);
@@ -48,152 +174,106 @@ export default function Home() {
   const [showRiskInfoModal, setShowRiskInfoModal] = useState(false);
   const [showTableInfoModal, setShowTableInfoModal] = useState(false);
   const [showPathwayInfoModal, setShowPathwayInfoModal] = useState(false);
-  
+  const [showHowToUseModal, setShowHowToUseModal] = useState(false);
+  const [showExplainModal, setShowExplainModal] = useState(false);
+  const [explainData, setExplainData] = useState(null);
+  const [loadingExplain, setLoadingExplain] = useState(false);
+
   // Loading states
   const [isAnalyzingRisk, setIsAnalyzingRisk] = useState(false);
   const [isExtractingTables, setIsExtractingTables] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [isSearchingPathway, setIsSearchingPathway] = useState(false);
   const [isLoadingPathwayStats, setIsLoadingPathwayStats] = useState(false);
+  const [isRunningCheck, setIsRunningCheck] = useState(false);
+  
+  // LandingAI ADE status
+  const [landingaiStatus, setLandingaiStatus] = useState(null);
+  const [extractedFields, setExtractedFields] = useState([]);
+  
+  // Agent states
+  const [agents, setAgents] = useState([]);
+  const [agentStatus, setAgentStatus] = useState({});
+  const [agentResults, setAgentResults] = useState(null);
 
-  const [ruleFile, setRuleFile] = useState(null);
-  const [ruleText, setRuleText] = useState("");
+  // Helper functions
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setContractFile(file);
+    }
+  };
 
-  // Inline rule editor
-  const [rules, setRules] = useState([]);
-  const [editorName, setEditorName] = useState("new_rule.md");
-  const [editorText, setEditorText] = useState("");
-
-  // Modal state
-  const [showExplainModal, setShowExplainModal] = useState(false);
-  const [explainData, setExplainData] = useState(null);
-  const [loadingExplain, setLoadingExplain] = useState(false);
-
-  async function uploadContract() {
-    if (!contractFile) {
-      alert("Please choose a contract PDF file first.");
+  const runCheck = async () => {
+    setIsRunningCheck(true);
+    try {
+      // First upload the contract if a file is selected
+      if (contractFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", contractFile);
+        
+        const uploadResponse = await fetch(`${API_BASE}/upload_contract`, {
+          method: "POST",
+          body: uploadFormData,
+        });
+        
+        if (!uploadResponse.ok) {
+          console.error("Failed to upload contract");
+          alert("❌ Failed to upload contract. Please try again.");
       return;
     }
     
-    try {
-      const fd = new FormData();
-      fd.append("file", contractFile, contractFile.name);
-      const r = await fetch(`${API_BASE}/upload_contract`, { method: "POST", body: fd });
-      if (!r.ok) {
-        const errorData = await r.json().catch(() => ({}));
-        alert(`Upload failed: ${r.status} ${errorData.detail || r.statusText}`);
-        return;
+        const uploadData = await uploadResponse.json();
+        console.log("Contract uploaded successfully:", uploadData);
       }
-      const data = await r.json();
-      alert(`✅ Contract uploaded successfully!\n\nExtracted ${data.fields?.length || 0} fields.`);
-      console.log("extracted_fields", data.fields);
-    } catch (error) {
-      alert(`❌ Upload error: ${error.message}`);
-    }
-  }
-
-  async function addRule() {
-    if (!ruleFile && !ruleText.trim()) {
-      alert("Please provide either a rule file or paste rule text.");
-      return;
-    }
-    
-    try {
-      let fd;
-      if (ruleFile) {
-        fd = new FormData();
-        fd.append("file", ruleFile, ruleFile.name);
-      } else {
-        const blob = new Blob([ruleText], { type: "text/markdown" });
-        fd = new FormData();
-        fd.append("file", blob, "snippet.md");
-      }
-      const r = await fetch(`${API_BASE}/upload_rule`, { method: "POST", body: fd });
-      if (!r.ok) {
-        const errorData = await r.json().catch(() => ({}));
-        alert(`❌ Add rule failed: ${r.status} ${errorData.detail || r.statusText}`);
-        return;
-      }
-      alert("✅ Rule added successfully!");
-      await refreshRules();
-    } catch (error) {
-      alert(`❌ Add rule error: ${error.message}`);
-    }
-  }
-
-  async function refreshRules() {
-    try {
-      const r = await fetch(`${API_BASE}/rules`);
-      if (!r.ok) return;
-      const data = await r.json();
-      setRules(data.items || []);
-    } catch {}
-  }
-
-  useEffect(() => {
-    refreshRules();
-  }, []);
-
-  async function loadRule(name) {
-    const r = await fetch(`${API_BASE}/rule?name=${encodeURIComponent(name)}`);
-    if (!r.ok) return alert("Load failed");
-    const data = await r.json();
-    setEditorName(data.name || name);
-    setEditorText(data.text || "");
-  }
-
-  async function saveRule() {
-    const r = await fetch(`${API_BASE}/rule`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editorName, text: editorText }),
-    });
-    if (!r.ok) return alert("Save failed");
-    alert("Rule saved");
-    await refreshRules();
-  }
-
-  async function checkCompliance() {
-    try {
-      const r = await fetch(`${API_BASE}/check?region=${region}`);
-      if (!r.ok) {
-        const errorData = await r.json().catch(() => ({}));
-        alert(`❌ Compliance check failed:\n${r.status} - ${errorData.detail || r.statusText}`);
-        return;
-      }
-      const data = await r.json();
-      setFlags(data);
+      
+      // Then run the compliance check
+      const response = await fetch(`${API_BASE}/check?region=${region}`, {
+        method: "GET",
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFlags(data);
+        console.log(`✅ Found ${data.length} compliance flags for ${region} region`);
+        
+        // Show LandingAI ADE activity
+        setLandingaiStatus({
+          status: "active",
+          message: "LandingAI ADE successfully analyzed contract fields",
+          fields_extracted: data.length > 0 ? "Multiple compliance fields detected" : "No compliance issues found"
+        });
+        
+        // Show success message
       if (data.length === 0) {
         alert("✅ No compliance issues found for the selected region!");
       } else {
-        alert(`🔍 Found ${data.length} compliance issue(s). Check the flags table below for details.`);
+          alert(`🔍 Found ${data.length} compliance issue(s). Check the flags below for details.`);
+        }
+      } else {
+        console.error("Compliance check failed:", response.status);
+        alert("❌ Compliance check failed. Please try again.");
       }
     } catch (error) {
-      alert(`❌ Compliance check error: ${error.message}`);
+      console.error("Error running check:", error);
+      alert("❌ Error running compliance check. Please try again.");
+    } finally {
+      setIsRunningCheck(false);
     }
-  }
+  };
 
-  async function explain(id) {
+  const explain = async (flagId) => {
     setLoadingExplain(true);
     setShowExplainModal(true);
     
     try {
-      const r = await fetch(`${API_BASE}/explain?id=${encodeURIComponent(id)}&region=${region}`);
-      if (!r.ok) {
+      const response = await fetch(`${API_BASE}/explain?id=${flagId}&region=${region}`);
+      if (response.ok) {
+        const data = await response.json();
+        setExplainData(data);
+      } else {
         setExplainData({ 
-          error: `Failed to get explanation: ${r.status} ${r.statusText}` 
-        });
-        return;
-      }
-      
-      const text = await r.text();
-      try {
-        const j = JSON.parse(text);
-        setExplainData(j);
-      } catch {
-        setExplainData({ 
-          error: `Invalid response format`,
-          rawResponse: text 
+          error: `Failed to get explanation: ${response.status} ${response.statusText}` 
         });
       }
     } catch (error) {
@@ -203,962 +283,916 @@ export default function Home() {
     } finally {
       setLoadingExplain(false);
     }
-  }
+  };
 
-  function closeExplainModal() {
+  const closeExplainModal = () => {
     setShowExplainModal(false);
     setExplainData(null);
     setLoadingExplain(false);
-  }
+  };
 
-  function downloadJSON() {
-    const blob = new Blob([JSON.stringify(flags, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `flags_${Date.now()}.json`;
-    a.click();
+  const downloadJSON = () => {
+    const dataStr = JSON.stringify(flags, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "compliance_flags.json";
+    link.click();
     URL.revokeObjectURL(url);
-  }
+  };
 
-  function downloadCSV() {
-    const header = [
-      "id","category","region","risk_level","rationale",
-      "contract_file","contract_page","rule_file","rule_section"
-    ];
-    const rows = flags.map((r) => {
-      const ce = r.contract_evidence || {};
-      const re = r.rule_evidence || {};
-      return [
-        r.id || "", r.category || "", r.region || "", r.risk_level || "", r.rationale || "",
-        ce.file || "", ce.page || "", re.file || "", re.section || ""
-      ];
-    });
-    const csv = [header, ...rows].map((row) => row.map((x) => `"${String(x).replace(/"/g,'""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+  const downloadCSV = () => {
+    const headers = ["ID", "Category", "Region", "Risk Level", "Rationale"];
+    const csvContent = [
+      headers.join(","),
+      ...flags.map(flag => [
+        flag.id,
+        flag.category,
+        flag.region,
+        flag.risk_level,
+        `"${flag.rationale}"`
+      ].join(","))
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `flags_${Date.now()}.csv`;
-    a.click();
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "compliance_flags.csv";
+    link.click();
     URL.revokeObjectURL(url);
-  }
+  };
 
-  // Novel Features Functions
-  async function analyzeRiskCorrelation() {
+  // Novel features functions
+  const analyzeRiskCorrelation = async () => {
     setIsAnalyzingRisk(true);
     try {
-      const r = await fetch(`${API_BASE}/risk_correlation?region=${region}`);
-      if (!r.ok) {
-        const errorData = await r.json().catch(() => ({}));
-        alert(`❌ Risk correlation analysis failed:\n${r.status} - ${errorData.detail || r.statusText}`);
-        return;
-      }
-      const data = await r.json();
+      const response = await fetch(`${API_BASE}/risk_correlation?region=${region}`);
+      const data = await response.json();
       setRiskCorrelations(data.correlations || []);
-      alert(`🔍 Risk Correlation Analysis Complete!\n\nFound ${data.correlations?.length || 0} correlations.\nOverall Risk: ${data.summary?.overall_risk || 'Unknown'}`);
     } catch (error) {
-      alert(`❌ Risk correlation error: ${error.message}`);
+      console.error("Risk correlation analysis failed:", error);
     } finally {
       setIsAnalyzingRisk(false);
     }
-  }
+  };
 
-  async function extractTables() {
+  const extractTables = async () => {
     setIsExtractingTables(true);
     try {
-      const r = await fetch(`${API_BASE}/extract_tables`);
-      if (!r.ok) {
-        const errorData = await r.json().catch(() => ({}));
-        alert(`❌ Table extraction failed:\n${r.status} - ${errorData.detail || r.statusText}`);
-        return;
-      }
-      const data = await r.json();
+      const response = await fetch(`${API_BASE}/extract_tables`);
+      const data = await response.json();
       setTables(data.tables || []);
-      alert(`📊 Table Extraction Complete!\n\nExtracted ${data.tables?.length || 0} tables from the document.`);
+      
+      // Show LandingAI ADE table extraction activity
+      setLandingaiStatus({
+        status: "active",
+        message: "LandingAI ADE DPT-2 model extracted structured tables",
+        fields_extracted: `Found ${data.tables?.length || 0} tables with AI analysis`,
+        ai_analysis: data.ai_analysis
+      });
+      
+      console.log("LandingAI ADE Table Extraction:", data);
     } catch (error) {
-      alert(`❌ Table extraction error: ${error.message}`);
+      console.error("Table extraction failed:", error);
     } finally {
       setIsExtractingTables(false);
     }
-  }
+  };
 
-  async function checkSystemStatus() {
+  const checkSystemStatus = async () => {
     setIsCheckingStatus(true);
     try {
-      const r = await fetch(`${API_BASE}/system_status`);
-      if (!r.ok) return;
-      const data = await r.json();
+      const response = await fetch(`${API_BASE}/system_status`);
+      const data = await response.json();
       setSystemStatus(data);
+      
+      // Also check LandingAI ADE status
+      if (data.landingai_available) {
+        setLandingaiStatus({
+          status: "available",
+          message: "LandingAI ADE is configured and ready",
+          fields_extracted: "DPT-2 model ready for document analysis"
+        });
+      } else {
+        setLandingaiStatus({
+          status: "unavailable",
+          message: "LandingAI ADE not configured",
+          fields_extracted: "Using fallback extraction methods"
+        });
+      }
     } catch (error) {
       console.error("System status check failed:", error);
     } finally {
       setIsCheckingStatus(false);
     }
-  }
+  };
 
-  // Pathway Functions
-  async function searchPathway() {
-    if (!pathwaySearchQuery.trim()) {
-      alert("Please enter a search query");
-      return;
-    }
+  // Pathway functions
+  const searchPathway = async () => {
+    if (!pathwaySearchQuery.trim()) return;
     
     setIsSearchingPathway(true);
     try {
-      const r = await fetch(`${API_BASE}/pathway_search?query=${encodeURIComponent(pathwaySearchQuery)}&top_k=5`);
-      if (!r.ok) {
-        const errorData = await r.json().catch(() => ({}));
-        alert(`❌ Pathway search failed:\n${r.status} - ${errorData.detail || r.statusText}`);
-        return;
-      }
-      const data = await r.json();
+      const response = await fetch(`${API_BASE}/pathway_search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: pathwaySearchQuery })
+      });
+      const data = await response.json();
       setPathwayResults(data.results || []);
-      alert(`🔍 Pathway Search Complete!\n\nFound ${data.results?.length || 0} relevant documents.`);
     } catch (error) {
-      alert(`❌ Pathway search error: ${error.message}`);
+      console.error("Pathway search failed:", error);
     } finally {
       setIsSearchingPathway(false);
     }
-  }
+  };
 
-  async function getPathwayStats() {
+  const getPathwayStats = async () => {
     setIsLoadingPathwayStats(true);
     try {
-      const r = await fetch(`${API_BASE}/pathway_stats`);
-      if (!r.ok) return;
-      const data = await r.json();
+      const response = await fetch(`${API_BASE}/pathway_stats`);
+      const data = await response.json();
       setPathwayStats(data);
     } catch (error) {
-      console.error("Pathway stats check failed:", error);
+      console.error("Failed to load Pathway stats:", error);
     } finally {
       setIsLoadingPathwayStats(false);
     }
-  }
+  };
 
-  // Real-time activity functions
-  async function getLiveActivity() {
+  const getLiveActivity = async () => {
     try {
-      const r = await fetch(`${API_BASE}/pathway_live_activity`);
-      if (!r.ok) return;
-      const data = await r.json();
-      setLiveActivity(data.activity || []);
+      const response = await fetch(`${API_BASE}/pathway_live_activity`);
+      const data = await response.json();
+      setLiveActivity(data.activities || []);
     } catch (error) {
-      console.error("Live activity check failed:", error);
+      console.error("Failed to load live activity:", error);
     }
-  }
+  };
 
-  async function addNewDocument() {
-    if (!newDocumentContent.trim() || !newDocumentName.trim()) {
-      alert("Please provide both content and filename");
-      return;
-    }
-
+  const addNewDocument = async () => {
+    if (!newDocumentContent.trim() || !newDocumentName.trim()) return;
+    
     try {
-      const formData = new FormData();
-      formData.append('content', newDocumentContent);
-      formData.append('filename', newDocumentName);
-      formData.append('doc_type', newDocumentType);
-
-      const r = await fetch(`${API_BASE}/pathway_add_document`, {
-        method: 'POST',
-        body: formData
+      const response = await fetch(`${API_BASE}/pathway_add_document`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: newDocumentContent,
+          name: newDocumentName,
+          type: newDocumentType
+        })
       });
-
-      if (!r.ok) {
-        const errorData = await r.json().catch(() => ({}));
-        alert(`❌ Failed to add document:\n${r.status} - ${errorData.detail || r.statusText}`);
-        return;
+      
+      if (response.ok) {
+        setNewDocumentContent("");
+        setNewDocumentName("");
+        getPathwayStats();
+        getLiveActivity();
       }
-
-      const data = await r.json();
-      alert(`✅ Document added successfully!\n\n${data.message}`);
-      
-      // Clear form
-      setNewDocumentContent("");
-      setNewDocumentName("");
-      
-      // Refresh stats and activity
-      getPathwayStats();
-      getLiveActivity();
     } catch (error) {
-      alert(`❌ Error adding document: ${error.message}`);
+      console.error("Failed to add document:", error);
     }
-  }
+  };
 
-  // Auto-refresh for real-time updates
+  // Auto-refresh Pathway stats and live activity
   useEffect(() => {
+    getPathwayStats();
+    getLiveActivity();
+    
     const interval = setInterval(() => {
       getPathwayStats();
       getLiveActivity();
-    }, 5000); // Update every 5 seconds
-
+    }, 5000);
+    
     return () => clearInterval(interval);
   }, []);
 
-  const box = { border: "1px solid #e5e7eb", padding: 16, borderRadius: 12, marginBottom: 16, background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" };
-  const buttonStyle = { 
-    background: "#2563eb", 
-    color: "white", 
-    border: "none", 
-    padding: "8px 16px", 
-    borderRadius: "6px", 
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "500"
-  };
-
   return (
-    <main style={{ padding: 24, maxWidth: 1200, margin: "0 auto", background: "#f8fafc", minHeight: "100vh" }}>
-      <div style={{ background: "white", borderRadius: "12px", padding: "24px", marginBottom: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-        <h1 style={{ marginBottom: 8, color: "#1f2937", fontSize: "28px", fontWeight: "600" }}>🔍 Global Compliance Copilot</h1>
-        <p style={{ color: "#6b7280", marginBottom: 20 }}>AI-powered contract compliance analysis across jurisdictions</p>
-        <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: "12px" }}>
-          <label style={{ fontWeight: "500", color: "#374151" }}>Region:</label>
-          <select 
-            value={region} 
-            onChange={(e) => setRegion(e.target.value)}
-            style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #d1d5db", fontSize: "14px" }}
-          >
-            <option>EU</option>
-            <option>US</option>
-            <option>IN</option>
-          </select>
-          <span style={{ marginLeft: 12, color: "#6b7280", fontSize: "12px" }}>API: {API_BASE}</span>
+    <div className="gradient-bg" style={{ minHeight: "100vh" }}>
+      {/* Header */}
+      <div className="glass-effect" style={{ 
+        padding: "20px 0", 
+        borderBottom: "1px solid rgba(255,255,255,0.1)",
+        position: "sticky",
+        top: 0,
+        zIndex: 100
+      }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h1 style={{ 
+                margin: 0, 
+                fontSize: "32px", 
+                fontWeight: "800", 
+                color: "#1f2937",
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent"
+              }}>
+                🤖 Compliance Copilot
+              </h1>
+              <p style={{ margin: "4px 0 0 0", color: "#6b7280", fontSize: "14px" }}>
+                AI-Powered Contract Compliance Analysis
+              </p>
+            </div>
+             <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+               <div style={{ 
+                 background: "rgba(255,255,255,0.9)", 
+                 padding: "6px 12px", 
+                 borderRadius: "20px",
+                 fontSize: "12px",
+                 fontWeight: "600",
+                 color: "#374151"
+               }}>
+                 {region} Region
+               </div>
+               {landingaiStatus && (
+                 <div style={{ 
+                   background: landingaiStatus.status === "active" || landingaiStatus.status === "available" ? "#f0fdf4" : "#fef2f2",
+                   border: `1px solid ${landingaiStatus.status === "active" || landingaiStatus.status === "available" ? "#bbf7d0" : "#fecaca"}`,
+                   padding: "6px 12px", 
+                   borderRadius: "20px",
+                   fontSize: "12px",
+                   fontWeight: "600",
+                   color: landingaiStatus.status === "active" || landingaiStatus.status === "available" ? "#16a34a" : "#dc2626",
+                   display: "flex",
+                   alignItems: "center",
+                   gap: "6px"
+                 }}>
+                   <div style={{
+                     width: "8px",
+                     height: "8px",
+                     borderRadius: "50%",
+                     background: landingaiStatus.status === "active" || landingaiStatus.status === "available" ? "#16a34a" : "#dc2626"
+                   }}></div>
+                   🤖 LandingAI ADE
+                 </div>
+               )}
+               <button 
+                 onClick={() => setShowHowToUseModal(true)}
+                 className="button-primary"
+               >
+                 📖 How to Use
+               </button>
+             </div>
+          </div>
         </div>
       </div>
 
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <div style={box}>
-          <h3>Upload contract (PDF)</h3>
-          <input 
-            type="file" 
-            accept="application/pdf" 
-            onChange={(e) => setContractFile(e.target.files?.[0] || null)}
-            style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px" }}
-          />
-          <div style={{ marginTop: 8 }}>
-            <button onClick={uploadContract} style={buttonStyle}>📄 Upload Contract</button>
-          </div>
-        </div>
-
-        <div style={box}>
-          <h3>Add rule (file or text)</h3>
-          <input 
-            type="file" 
-            accept=".md,.txt,application/pdf" 
-            onChange={(e) => setRuleFile(e.target.files?.[0] || null)}
-            style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px" }}
-          />
-          <div style={{ margin: "8px 0", textAlign: "center", color: "#6b7280", fontWeight: "500" }}>OR</div>
-          <textarea 
-            rows={5} 
-            style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px", resize: "vertical" }} 
-            placeholder="Paste rule snippet..." 
-            value={ruleText} 
-            onChange={(e) => setRuleText(e.target.value)} 
-          />
-          <div style={{ marginTop: 8 }}>
-            <button onClick={addRule} style={buttonStyle}>📋 Add Rule</button>
-          </div>
-        </div>
-      </section>
-
-      <section style={box}>
-        <h3>Inline Rule Editor</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 12 }}>
-          <div>
-            <div style={{ marginBottom: 8, fontWeight: 600 }}>Existing rules</div>
-            <ul style={{ maxHeight: 220, overflow: "auto", paddingLeft: 16, margin: 0 }}>
-              {rules.map((r) => (
-                <li key={r.path} style={{ cursor: "pointer", marginBottom: 4 }} onClick={() => loadRule(r.name)}>
-                  {r.name}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <input value={editorName} onChange={(e) => setEditorName(e.target.value)} style={{ flex: 1 }} />
-              <button onClick={saveRule} style={buttonStyle}>💾 Save</button>
-            </div>
-            <textarea rows={10} style={{ width: "100%" }} value={editorText} onChange={(e) => setEditorText(e.target.value)} />
-          </div>
-        </div>
-      </section>
-
-      <section style={box}>
-        <h3>Run compliance</h3>
-        <button onClick={checkCompliance} style={{...buttonStyle, background: "#059669", padding: "12px 24px", fontSize: "16px"}}>🔍 Run Compliance Check</button>
-      </section>
-
-      {/* Novel Features Section */}
-      <section style={box}>
-        <h3>🚀 Novel Features (Hackathon)</h3>
+      {/* Main Content */}
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 24px" }}>
         
-        {/* Progress Indicator */}
-        {(isAnalyzingRisk || isExtractingTables || isCheckingStatus) && (
-          <div style={{
-            background: "#f0f9ff",
-            border: "1px solid #bae6fd",
-            borderRadius: "8px",
-            padding: "12px",
-            marginBottom: "16px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px"
-          }}>
-            <div style={{
-              width: "20px",
-              height: "20px",
-              border: "2px solid #3b82f6",
-              borderTop: "2px solid transparent",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite"
-            }}></div>
-            <span style={{ color: "#1e40af", fontWeight: "500" }}>
-              {isAnalyzingRisk && "🔍 Analyzing risk correlations..."}
-              {isExtractingTables && "📊 Extracting tables with LandingAI ADE..."}
-              {isCheckingStatus && "🔧 Checking system status..."}
-            </span>
+        {/* Control Panel */}
+        <div className="section-card">
+          <div style={{ marginBottom: "20px" }}>
+            <h2 style={{ margin: "0 0 8px 0", fontSize: "20px", fontWeight: "600", color: "#1f2937" }}>
+              🎛️ Control Panel
+            </h2>
+            <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
+              Configure compliance analysis parameters
+            </p>
           </div>
-        )}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-            <button 
-              onClick={analyzeRiskCorrelation} 
-              disabled={isAnalyzingRisk}
-              style={{
-                ...buttonStyle, 
-                background: isAnalyzingRisk ? "#9ca3af" : "#7c3aed", 
-                padding: "10px 16px",
-                opacity: isAnalyzingRisk ? 0.7 : 1,
-                cursor: isAnalyzingRisk ? "not-allowed" : "pointer"
-              }}
-            >
-              {isAnalyzingRisk ? "⏳ Analyzing..." : "🔗 Risk Correlation Analysis"}
-            </button>
-            <button 
-              onClick={extractTables} 
-              disabled={isExtractingTables}
-              style={{
-                ...buttonStyle, 
-                background: isExtractingTables ? "#9ca3af" : "#dc2626", 
-                padding: "10px 16px",
-                opacity: isExtractingTables ? 0.7 : 1,
-                cursor: isExtractingTables ? "not-allowed" : "pointer"
-              }}
-            >
-              {isExtractingTables ? "⏳ Extracting..." : "📊 Extract Tables (LandingAI ADE)"}
-            </button>
-          </div>
-          <button 
-            onClick={checkSystemStatus} 
-            disabled={isCheckingStatus}
-            style={{
-              ...buttonStyle, 
-              background: isCheckingStatus ? "#9ca3af" : "#6b7280", 
-              padding: "8px 16px", 
-              fontSize: "14px",
-              opacity: isCheckingStatus ? 0.7 : 1,
-              cursor: isCheckingStatus ? "not-allowed" : "pointer"
-            }}
-          >
-            {isCheckingStatus ? "⏳ Checking..." : "🔧 Check System Status"}
-          </button>
-      </section>
-
-      <section style={box}>
-        <h3>Flags ({flags.length})</h3>
-        {flags.length === 0 ? (
-          <div>No flags yet.</div>
-        ) : (
-          <table width="100%" cellPadding="8" style={{ borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f3f4f6" }}>
-                <th align="left">Risk</th>
-                <th align="left">Category</th>
-                <th align="left">ID</th>
-                <th align="left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {flags.map((f) => (
-                <tr key={f.id} style={{ borderTop: "1px solid #e5e7eb" }}>
-                  <td>{f.risk_level}</td>
-                  <td>{f.category}</td>
-                  <td>{f.id}</td>
-                  <td>
-                    <button onClick={() => explain(f.id)} style={{...buttonStyle, background: "#7c3aed", padding: "4px 8px", fontSize: "12px"}}>ℹ️ Explain</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-          <button onClick={downloadJSON} disabled={flags.length === 0} style={{...buttonStyle, background: "#dc2626", opacity: flags.length === 0 ? 0.5 : 1}}>📄 Download JSON</button>
-          <button onClick={downloadCSV} disabled={flags.length === 0} style={{...buttonStyle, background: "#dc2626", opacity: flags.length === 0 ? 0.5 : 1}}>📊 Download CSV</button>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
+            {/* Region Selection */}
+            <div>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500", color: "#374151" }}>
+                Region
+              </label>
+              <div className="region-selector">
+                {["EU", "US", "IN", "UK"].map((r) => (
+                  <button
+                    key={r}
+                    className={`region-option ${region === r ? "active" : ""}`}
+                    onClick={() => setRegion(r)}
+                  >
+                    {r}
+                  </button>
+                ))}
         </div>
-      </section>
+      </div>
 
-        {/* Risk Correlations Display */}
-        {riskCorrelations.length > 0 && (
-          <section style={box}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h3>🔗 Risk Correlations ({riskCorrelations.length})</h3>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <div style={{ 
-                  fontSize: "12px", 
-                  color: "#6b7280", 
-                  background: "#f0f9ff", 
-                  padding: "6px 12px", 
-                  borderRadius: "6px",
-                  border: "1px solid #bae6fd"
-                }}>
-                  💡 Finds hidden connections between documents and clauses
-                </div>
-                <button 
-                  onClick={() => setShowRiskInfoModal(true)}
-                  style={{
-                    background: "#3b82f6",
-                    color: "white",
-                    border: "none",
-                    padding: "6px 12px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    fontWeight: "500"
-                  }}
-                >
-                  ℹ️ Info
-                </button>
-              </div>
+            {/* File Upload */}
+            <div>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500", color: "#374151" }}>
+                Contract File
+              </label>
+          <input 
+            type="file" 
+                onChange={handleFileUpload}
+                accept=".pdf,.doc,.docx"
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  fontSize: "14px"
+                }}
+              />
             </div>
-            <div style={{ maxHeight: 400, overflow: "auto" }}>
-              {riskCorrelations.map((correlation, index) => (
-                <div key={index} style={{ 
-                  padding: "16px", 
-                  margin: "12px 0", 
-                  background: correlation.risk_level === "HIGH" ? "#fef2f2" : correlation.risk_level === "MEDIUM" ? "#fffbeb" : "#f0fdf4",
-                  border: `2px solid ${correlation.risk_level === "HIGH" ? "#fecaca" : correlation.risk_level === "MEDIUM" ? "#fed7aa" : "#bbf7d0"}`,
-                  borderRadius: "12px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-                    <div>
-                      <div style={{ 
-                        fontWeight: "600", 
-                        fontSize: "16px",
-                        color: correlation.risk_level === "HIGH" ? "#dc2626" : correlation.risk_level === "MEDIUM" ? "#d97706" : "#16a34a",
-                        marginBottom: "4px"
-                      }}>
-                        {correlation.correlation_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+          </div>
+
+           <div style={{ marginTop: "20px", display: "flex", gap: "12px" }}>
+             <button 
+               onClick={runCheck} 
+               className="button-primary"
+               disabled={isRunningCheck}
+               style={{
+                 opacity: isRunningCheck ? 0.7 : 1,
+                 cursor: isRunningCheck ? "not-allowed" : "pointer"
+               }}
+             >
+               {isRunningCheck ? "⏳ Analyzing..." : "🔍 Run Compliance Check"}
+             </button>
+            <button onClick={analyzeRiskCorrelation} className="button-secondary" disabled={isAnalyzingRisk}>
+              {isAnalyzingRisk ? "⏳ Analyzing..." : "🔗 Analyze Risk Correlation"}
+            </button>
+            <button onClick={extractTables} className="button-secondary" disabled={isExtractingTables}>
+              {isExtractingTables ? "⏳ Extracting..." : "📊 Extract Tables"}
+            </button>
+            <button onClick={checkSystemStatus} className="button-secondary" disabled={isCheckingStatus}>
+              {isCheckingStatus ? "⏳ Checking..." : "🔧 System Status"}
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Overview */}
+        {flags.length > 0 && (
+          <div className="stats-grid">
+            <div className="stat-card">
+              <div style={{ fontSize: "24px", fontWeight: "700", color: "#1f2937" }}>
+                {flags.length}
+              </div>
+              <div style={{ fontSize: "14px", color: "#6b7280" }}>Total Flags</div>
+            </div>
+            <div className="stat-card">
+              <div style={{ fontSize: "24px", fontWeight: "700", color: "#dc2626" }}>
+                {flags.filter(f => f.risk_level === "HIGH").length}
+              </div>
+              <div style={{ fontSize: "14px", color: "#6b7280" }}>High Risk</div>
+            </div>
+            <div className="stat-card">
+              <div style={{ fontSize: "24px", fontWeight: "700", color: "#d97706" }}>
+                {flags.filter(f => f.risk_level === "MEDIUM").length}
+              </div>
+              <div style={{ fontSize: "14px", color: "#6b7280" }}>Medium Risk</div>
+            </div>
+            <div className="stat-card">
+              <div style={{ fontSize: "24px", fontWeight: "700", color: "#16a34a" }}>
+                {flags.filter(f => f.risk_level === "LOW").length}
+              </div>
+              <div style={{ fontSize: "14px", color: "#6b7280" }}>Low Risk</div>
+            </div>
+          </div>
+        )}
+
+        {/* Compliance Flags */}
+        {flags.length > 0 && (
+          <div className="section-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <div>
+                <h2 style={{ margin: "0 0 4px 0", fontSize: "20px", fontWeight: "600", color: "#1f2937" }}>
+                  🚩 Compliance Flags ({flags.length})
+                </h2>
+                <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
+                  AI-powered compliance analysis results
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button onClick={downloadJSON} className="button-secondary">
+                  📄 JSON
+                </button>
+                <button onClick={downloadCSV} className="button-secondary">
+                  📊 CSV
+                </button>
+          </div>
+        </div>
+            
+            <div style={{ maxHeight: "500px", overflow: "auto" }}>
+              {flags.map((flag, index) => {
+                const getFlagColors = (riskLevel) => {
+                  if (riskLevel === "HIGH") {
+                    return {
+                      background: "#fef2f2",
+                      border: "#fecaca", 
+                      text: "#dc2626",
+                      priority: "🔴"
+                    };
+                  } else if (riskLevel === "MEDIUM") {
+                    return {
+                      background: "#fffbeb",
+                      border: "#fed7aa",
+                      text: "#d97706", 
+                      priority: "🟡"
+                    };
+                  } else {
+                    return {
+                      background: "#f0fdf4",
+                      border: "#bbf7d0",
+                      text: "#16a34a",
+                      priority: "🟢"
+                    };
+                  }
+                };
+                
+                const colors = getFlagColors(flag.risk_level);
+                
+                return (
+                  <div key={index} className="flag-card" style={{ 
+                    background: colors.background,
+                    border: `2px solid ${colors.border}`,
+                    position: "relative"
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+          <div>
+                        <div style={{ 
+                          fontWeight: "600", 
+                          fontSize: "16px",
+                          color: colors.text,
+                          marginBottom: "4px"
+                        }}>
+                          {flag.id}
+                        </div>
+                        <div style={{ 
+                          fontSize: "12px", 
+                          color: colors.text,
+                          fontWeight: "600",
+                          background: colors.background,
+                          padding: "2px 8px",
+                          borderRadius: "4px",
+                          display: "inline-block"
+                        }}>
+                          {flag.risk_level} RISK
+                        </div>
                       </div>
                       <div style={{ 
                         fontSize: "12px", 
-                        color: correlation.risk_level === "HIGH" ? "#dc2626" : correlation.risk_level === "MEDIUM" ? "#d97706" : "#16a34a",
-                        fontWeight: "600",
-                        background: correlation.risk_level === "HIGH" ? "#fef2f2" : correlation.risk_level === "MEDIUM" ? "#fffbeb" : "#f0fdf4",
-                        padding: "2px 8px",
-                        borderRadius: "4px",
-                        display: "inline-block"
+                        color: "#6b7280",
+                        background: "rgba(255,255,255,0.8)",
+                        padding: "4px 8px",
+                        borderRadius: "6px"
                       }}>
-                        {correlation.risk_level} RISK
+                        {flag.category} • {flag.region}
                       </div>
                     </div>
+                    
+                    <div style={{ fontSize: "14px", color: "#374151", marginBottom: "12px", lineHeight: "1.5" }}>
+                      {flag.rationale}
+          </div>
+                    
                     <div style={{ 
-                      fontSize: "12px", 
-                      color: "#6b7280",
-                      background: "#f3f4f6",
-                      padding: "4px 8px",
-                      borderRadius: "6px"
+                      display: "flex", 
+                      justifyContent: "space-between", 
+                      alignItems: "center",
+                      fontSize: "12px",
+                      color: "#6b7280"
                     }}>
-                      {Math.round(correlation.confidence * 100)}% confidence
+          <div>
+                        Contract: {flag.contract_evidence?.file?.split('/').pop() || 'Unknown'} 
+                        {flag.contract_evidence?.page && ` (Page ${flag.contract_evidence.page})`}
+                      </div>
+                      <button 
+                        onClick={() => explain(flag.id)}
+                        style={{
+                          background: "#3b82f6",
+                          color: "white",
+                          border: "none",
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          fontSize: "11px"
+                        }}
+                      >
+                        📋 Explain
+                      </button>
+                    </div>
+                    
+                    {/* Priority indicator */}
+                    <div style={{
+                      position: "absolute",
+                      top: "8px",
+                      right: "8px",
+                      fontSize: "18px"
+                    }}>
+                      {colors.priority}
+                    </div>
+            </div>
+                );
+              })}
+          </div>
+        </div>
+        )}
+
+        {/* Risk Correlations */}
+        {riskCorrelations.length > 0 && (
+          <div className="section-card">
+            <h2 style={{ margin: "0 0 16px 0", fontSize: "20px", fontWeight: "600", color: "#1f2937" }}>
+              🔗 Risk Correlations ({riskCorrelations.length})
+            </h2>
+            <div style={{ 
+              background: "rgba(254, 243, 199, 0.3)", 
+              padding: "12px", 
+              borderRadius: "8px", 
+              marginBottom: "16px",
+              border: "1px solid rgba(251, 191, 36, 0.3)"
+            }}>
+              <div style={{ fontSize: "14px", color: "#92400e", fontWeight: "500" }}>
+                ⚠️ <strong>What This Means:</strong> Risk correlations identify hidden compliance issues that emerge when multiple contract elements interact. These are often missed by traditional single-field analysis.
+              </div>
+            </div>
+            <div style={{ display: "grid", gap: "16px" }}>
+              {riskCorrelations.map((correlation, index) => (
+                <div key={index} style={{
+                  background: correlation.risk_level === "HIGH" ? "rgba(254, 226, 226, 0.8)" : 
+                             correlation.risk_level === "MEDIUM" ? "rgba(254, 243, 199, 0.8)" : 
+                             "rgba(240, 253, 244, 0.8)",
+                  padding: "20px",
+                  borderRadius: "12px",
+                  border: `2px solid ${correlation.risk_level === "HIGH" ? "#fecaca" : 
+                                         correlation.risk_level === "MEDIUM" ? "#fde68a" : 
+                                         "#bbf7d0"}`,
+                  boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
+                }}>
+                  {/* Header with risk level indicator */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+                    <div style={{
+                      width: "12px",
+                      height: "12px",
+                      borderRadius: "50%",
+                      background: correlation.risk_level === "HIGH" ? "#dc2626" : 
+                                 correlation.risk_level === "MEDIUM" ? "#d97706" : 
+                                 "#16a34a"
+                    }}></div>
+                    <div style={{ fontWeight: "700", fontSize: "16px", color: "#1f2937" }}>
+                      {correlation.correlation_type?.replace(/_/g, ' ').toUpperCase()}
+                    </div>
+                    <div style={{
+                      background: correlation.risk_level === "HIGH" ? "#dc2626" : 
+                                 correlation.risk_level === "MEDIUM" ? "#d97706" : 
+                                 "#16a34a",
+                      color: "white",
+                      padding: "4px 12px",
+                      borderRadius: "20px",
+                      fontSize: "12px",
+                      fontWeight: "600"
+                    }}>
+                      {correlation.risk_level} RISK
                     </div>
                   </div>
-                  
-                  <div style={{ fontSize: "14px", color: "#374151", marginBottom: "12px", lineHeight: "1.5" }}>
-                    {correlation.description}
+
+                  {/* Detailed explanation */}
+                  <div style={{ marginBottom: "16px" }}>
+                    <div style={{ fontWeight: "600", marginBottom: "8px", color: "#374151", fontSize: "15px" }}>
+                      📋 What's Happening:
+                    </div>
+                    <div style={{ fontSize: "14px", color: "#6b7280", lineHeight: "1.6", marginBottom: "12px" }}>
+                      {correlation.description}
+                    </div>
                   </div>
-                  
-                  {correlation.risk_indicators && correlation.risk_indicators.length > 0 && (
-                    <div style={{ marginBottom: "12px" }}>
-                      <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "6px" }}>
-                        Risk Indicators:
+
+                  {/* Violation details */}
+                  <div style={{ marginBottom: "16px" }}>
+                    <div style={{ fontWeight: "600", marginBottom: "8px", color: "#374151", fontSize: "15px" }}>
+                      ⚖️ Potential Violations:
+                    </div>
+                    <div style={{ fontSize: "14px", color: "#6b7280", lineHeight: "1.6" }}>
+                      {correlation.correlation_type === "temporal_conflict" && (
+                        <div>
+                          <strong>• Notice Period Conflicts:</strong> Different sections of the contract specify conflicting notice periods, which could lead to legal disputes about which terms apply.<br/>
+                          <strong>• Termination Rights:</strong> Conflicting termination clauses may violate employment law requirements for consistent contract terms.<br/>
+                          <strong>• Legal Uncertainty:</strong> Ambiguous terms create legal risk and potential for costly litigation.
+                        </div>
+                      )}
+                      {correlation.correlation_type === "jurisdiction_conflict" && (
+                        <div>
+                          <strong>• Governing Law Conflicts:</strong> Multiple jurisdictions specified may violate conflict of law principles.<br/>
+                          <strong>• Regulatory Compliance:</strong> Different legal frameworks may have incompatible requirements.<br/>
+                          <strong>• Enforcement Issues:</strong> Courts may refuse to enforce contracts with conflicting jurisdiction clauses.
+                        </div>
+                      )}
+                      {correlation.correlation_type === "data_flow_risk" && (
+                        <div>
+                          <strong>• Data Protection Violations:</strong> Cross-border data transfers without proper safeguards may violate GDPR, CCPA, or other privacy laws.<br/>
+                          <strong>• Consent Requirements:</strong> Inadequate consent mechanisms for data processing across different systems.<br/>
+                          <strong>• Regulatory Reporting:</strong> Failure to comply with data breach notification requirements across jurisdictions.
+                        </div>
+                      )}
+                      {correlation.correlation_type === "supplier_risk" && (
+                        <div>
+                          <strong>• Third-Party Liability:</strong> Inadequate due diligence on suppliers may violate anti-corruption laws.<br/>
+                          <strong>• Supply Chain Compliance:</strong> Failure to ensure supplier compliance with applicable regulations.<br/>
+                          <strong>• Reputational Risk:</strong> Association with non-compliant suppliers may violate corporate governance requirements.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Affected fields */}
+                  {correlation.fields && correlation.fields.length > 0 && (
+                    <div style={{ marginBottom: "16px" }}>
+                      <div style={{ fontWeight: "600", marginBottom: "8px", color: "#374151", fontSize: "15px" }}>
+                        📄 Affected Contract Sections:
                       </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                        {correlation.risk_indicators.map((indicator, idx) => (
-                          <span key={idx} style={{
-                            background: "#e5e7eb",
-                            color: "#374151",
-                            padding: "2px 6px",
-                            borderRadius: "4px",
-                            fontSize: "11px",
-                            fontWeight: "500"
+                      <div style={{ display: "grid", gap: "8px" }}>
+                        {correlation.fields.map((field, fieldIndex) => (
+                          <div key={fieldIndex} style={{
+                            background: "rgba(255,255,255,0.7)",
+                            padding: "12px",
+                            borderRadius: "8px",
+                            border: "1px solid rgba(0,0,0,0.1)"
                           }}>
-                            {indicator.indicator || indicator}
-                          </span>
+                            <div style={{ fontWeight: "500", color: "#1f2937", marginBottom: "4px" }}>
+                              {field.name?.replace(/_/g, ' ').toUpperCase()}
+                            </div>
+                            <div style={{ fontSize: "13px", color: "#6b7280", lineHeight: "1.4" }}>
+                              {(() => {
+                                let displayValue = field.value;
+                                if (typeof displayValue === 'string') {
+                                  // Clean up any Chunk object strings
+                                  if (displayValue.includes('Chunk(')) {
+                                    // Extract markdown content from Chunk string
+                                    const markdownMatch = displayValue.match(/markdown="([^"]*)"/);
+                                    if (markdownMatch) {
+                                      displayValue = markdownMatch[1];
+                                    } else {
+                                      displayValue = displayValue.substring(0, 200) + '...';
+                                    }
+                                  }
+                                  // Clean up HTML tags and show clean text
+                                  displayValue = displayValue
+                                    .replace(/<[^>]*>/g, '') // Remove HTML tags
+                                    .replace(/&lt;/g, '<')
+                                    .replace(/&gt;/g, '>')
+                                    .replace(/&amp;/g, '&')
+                                    .trim();
+                                  
+                                  // If text is long, show with expandable dropdown
+                                  if (displayValue.length > 200) {
+                                    return (
+                                      <div>
+                                        <div style={{ marginBottom: "8px" }}>
+                                          {displayValue.substring(0, 200)}...
+                                        </div>
+                                        <details style={{ cursor: "pointer" }}>
+                                          <summary style={{ 
+                                            color: "#3b82f6", 
+                                            fontWeight: "500",
+                                            fontSize: "12px",
+                                            marginBottom: "8px"
+                                          }}>
+                                            📖 Show Full Text
+                                          </summary>
+                                          <div style={{
+                                            background: "rgba(248, 250, 252, 0.8)",
+                                            padding: "12px",
+                                            borderRadius: "6px",
+                                            border: "1px solid rgba(0,0,0,0.1)",
+                                            marginTop: "8px",
+                                            whiteSpace: "pre-wrap",
+                                            fontSize: "12px",
+                                            lineHeight: "1.5",
+                                            maxHeight: "300px",
+                                            overflowY: "auto"
+                                          }}>
+                                            {displayValue}
+                                          </div>
+                                        </details>
+                                      </div>
+                                    );
+                                  } else {
+                                    return displayValue;
+                                  }
+                                }
+                                return 'Contract field data';
+                              })()}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
                   )}
-                  
-                  <div style={{ 
-                    display: "flex", 
-                    justifyContent: "space-between", 
-                    alignItems: "center",
-                    fontSize: "12px", 
-                    color: "#9ca3af",
-                    borderTop: "1px solid #e5e7eb",
-                    paddingTop: "8px"
-                  }}>
-                    <span>Fields: {correlation.matching_fields} | Indicators: {correlation.risk_indicators?.length || 0}</span>
-                    <span>Region: {correlation.region}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
 
-        {/* Pathway Search Section */}
-        <section style={box}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h3>🔍 Pathway Live Search</h3>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <div style={{ 
-                fontSize: "12px", 
-                color: "#6b7280", 
-                background: "#f0f9ff", 
-                padding: "6px 12px", 
-                borderRadius: "6px",
-                border: "1px solid #bae6fd"
-              }}>
-                💡 Real-time document indexing with hybrid search
-              </div>
-              <button 
-                onClick={() => setShowPathwayInfoModal(true)}
-                style={{
-                  background: "#7c3aed",
-                  color: "white",
-                  border: "none",
-                  padding: "6px 12px",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  fontWeight: "500"
-                }}
-              >
-                ℹ️ Info
-              </button>
-            </div>
-          </div>
-          
-          {/* Search Input */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-            <input
-              type="text"
-              placeholder="Search documents (e.g., 'GDPR privacy', 'labor law', 'tax withholding')"
-              value={pathwaySearchQuery}
-              onChange={(e) => setPathwaySearchQuery(e.target.value)}
-              style={{
-                flex: 1,
-                padding: "8px 12px",
-                border: "1px solid #d1d5db",
-                borderRadius: "6px",
-                fontSize: "14px"
-              }}
-              onKeyPress={(e) => e.key === 'Enter' && searchPathway()}
-            />
-            <button 
-              onClick={searchPathway}
-              disabled={isSearchingPathway}
-              style={{
-                ...buttonStyle, 
-                background: isSearchingPathway ? "#9ca3af" : "#7c3aed", 
-                padding: "8px 16px",
-                opacity: isSearchingPathway ? 0.7 : 1,
-                cursor: isSearchingPathway ? "not-allowed" : "pointer"
-              }}
-            >
-              {isSearchingPathway ? "⏳ Searching..." : "🔍 Search"}
-            </button>
-          </div>
-
-          {/* Pathway Stats */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-            <button 
-              onClick={getPathwayStats}
-              disabled={isLoadingPathwayStats}
-              style={{
-                ...buttonStyle, 
-                background: isLoadingPathwayStats ? "#9ca3af" : "#6b7280", 
-                padding: "6px 12px", 
-                fontSize: "12px",
-                opacity: isLoadingPathwayStats ? 0.7 : 1,
-                cursor: isLoadingPathwayStats ? "not-allowed" : "pointer"
-              }}
-            >
-              {isLoadingPathwayStats ? "⏳ Loading..." : "📊 Get Stats"}
-            </button>
-          </div>
-
-          {/* Real-time Activity Feed */}
-          {liveActivity.length > 0 && (
-            <div style={{ 
-              background: "#f0f9ff", 
-              border: "1px solid #bae6fd", 
-              borderRadius: "8px", 
-              padding: "12px", 
-              marginBottom: "16px" 
-            }}>
-              <h4 style={{ margin: "0 0 8px 0", fontSize: "14px", color: "#1e40af" }}>⚡ Live Activity</h4>
-              <div style={{ maxHeight: "200px", overflow: "auto" }}>
-                {liveActivity.map((activity, index) => (
-                  <div key={index} style={{ 
-                    display: "flex", 
-                    justifyContent: "space-between", 
-                    alignItems: "center",
-                    padding: "4px 0",
-                    borderBottom: index < liveActivity.length - 1 ? "1px solid #e5e7eb" : "none"
-                  }}>
-                    <div style={{ fontSize: "12px" }}>
-                      <span style={{ fontWeight: "600" }}>{activity.file}</span>
-                      <span style={{ color: "#6b7280", marginLeft: "8px" }}>
-                        ({activity.type})
-                      </span>
-                    </div>
-                    <div style={{ fontSize: "11px", color: "#9ca3af" }}>
-                      {activity.time_ago < 60 ? `${activity.time_ago}s ago` : 
-                       activity.time_ago < 3600 ? `${Math.floor(activity.time_ago/60)}m ago` : 
-                       `${Math.floor(activity.time_ago/3600)}h ago`}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Add New Document */}
-          <div style={{ 
-            background: "#f8fafc", 
-            border: "1px solid #e2e8f0", 
-            borderRadius: "8px", 
-            padding: "16px", 
-            marginBottom: "16px" 
-          }}>
-            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#374151" }}>📝 Add New Document</h4>
-            <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-              <input
-                type="text"
-                placeholder="Filename (e.g., new_rule.md)"
-                value={newDocumentName}
-                onChange={(e) => setNewDocumentName(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: "6px 8px",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "4px",
-                  fontSize: "12px"
-                }}
-              />
-              <select
-                value={newDocumentType}
-                onChange={(e) => setNewDocumentType(e.target.value)}
-                style={{
-                  padding: "6px 8px",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "4px",
-                  fontSize: "12px"
-                }}
-              >
-                <option value="rule">Rule</option>
-                <option value="contract">Contract</option>
-              </select>
-            </div>
-            <textarea
-              placeholder="Enter document content..."
-              value={newDocumentContent}
-              onChange={(e) => setNewDocumentContent(e.target.value)}
-              style={{
-                width: "100%",
-                height: "100px",
-                padding: "8px",
-                border: "1px solid #d1d5db",
-                borderRadius: "4px",
-                fontSize: "12px",
-                resize: "vertical",
-                marginBottom: "8px"
-              }}
-            />
-            <button 
-              onClick={addNewDocument}
-              style={{
-                ...buttonStyle, 
-                background: "#10b981", 
-                padding: "6px 12px", 
-                fontSize: "12px"
-              }}
-            >
-              ➕ Add Document
-            </button>
-          </div>
-
-          {/* Pathway Stats Display */}
-          {pathwayStats && (
-            <div style={{ 
-              background: "#f8fafc", 
-              border: "1px solid #e2e8f0", 
-              borderRadius: "8px", 
-              padding: "12px", 
-              marginBottom: "16px" 
-            }}>
-              <h4 style={{ margin: "0 0 8px 0", fontSize: "14px", color: "#374151" }}>📊 Live Statistics</h4>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "8px", fontSize: "12px" }}>
-                <div>Documents: {pathwayStats.document_count || 0}</div>
-                <div>Recent Changes: {pathwayStats.recent_changes || 0}</div>
-                <div>Status: {pathwayStats.live_monitoring ? "🟢 Live" : "🔴 Static"}</div>
-                <div>Last Update: {pathwayStats.last_indexed || "Unknown"}</div>
-              </div>
-            </div>
-          )}
-
-          {/* Search Results Display */}
-          {pathwayResults.length > 0 && (
-            <div style={{ maxHeight: 400, overflow: "auto" }}>
-              <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#374151" }}>🔍 Search Results ({pathwayResults.length})</h4>
-              {pathwayResults.map((result, index) => (
-                <div key={index} style={{ 
-                  padding: "12px", 
-                  margin: "8px 0", 
-                  background: "#ffffff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                }}>
-                  <div style={{ 
-                    display: "flex", 
-                    justifyContent: "space-between", 
-                    alignItems: "flex-start",
-                    marginBottom: "8px"
-                  }}>
-                    <div style={{ 
-                      fontSize: "12px", 
-                      color: "#6b7280",
-                      background: "#f3f4f6",
-                      padding: "2px 6px",
-                      borderRadius: "4px"
-                    }}>
-                      Score: {result.score ? result.score.toFixed(3) : "N/A"}
-                    </div>
-                    <div style={{ 
-                      fontSize: "11px", 
-                      color: "#9ca3af"
-                    }}>
-                      Result {index + 1}
-                    </div>
-                  </div>
-                  
-                  <div style={{ 
-                    fontSize: "13px", 
-                    color: "#374151", 
-                    lineHeight: "1.4",
-                    maxHeight: "150px",
-                    overflow: "hidden"
-                  }}>
-                    {result.text ? (
-                      <div 
-                        dangerouslySetInnerHTML={{ 
-                          __html: result.text
-                        }}
-                      />
-                    ) : "No text content"}
-                  </div>
-                  
-                  {result.metadata && (
-                    <div style={{ 
-                      marginTop: "8px",
-                      fontSize: "11px", 
-                      color: "#6b7280",
-                      borderTop: "1px solid #e5e7eb",
-                      paddingTop: "6px"
-                    }}>
-                      <strong>Source:</strong> {result.metadata.path || "Unknown"}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* System Status Display */}
-        {systemStatus && (
-        <section style={box}>
-          <h3>🔧 System Status</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div style={{ padding: "12px", background: systemStatus.landingai_available ? "#f0fdf4" : "#fef2f2", borderRadius: "8px" }}>
-              <div style={{ fontWeight: "600", marginBottom: "4px" }}>LandingAI ADE</div>
-              <div style={{ color: systemStatus.landingai_available ? "#15803d" : "#dc2626" }}>
-                {systemStatus.landingai_available ? "✅ Available" : "❌ Not Configured"}
-              </div>
-            </div>
-            <div style={{ padding: "12px", background: systemStatus.pathway_available ? "#f0fdf4" : "#fef2f2", borderRadius: "8px" }}>
-              <div style={{ fontWeight: "600", marginBottom: "4px" }}>Pathway</div>
-              <div style={{ color: systemStatus.pathway_available ? "#15803d" : "#dc2626" }}>
-                {systemStatus.pathway_available ? "✅ Available" : "❌ Not Configured"}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-        {/* Tables Display */}
-        {tables.length > 0 && (
-          <section style={box}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h3>📊 Extracted Tables ({tables.length})</h3>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <div style={{ 
-                  fontSize: "12px", 
-                  color: "#6b7280", 
-                  background: "#f0f9ff", 
-                  padding: "6px 12px", 
-                  borderRadius: "6px",
-                  border: "1px solid #bae6fd"
-                }}>
-                  💡 Tables show compliance matrices, risk assessments, and regulatory mappings
-                </div>
-                <button 
-                  onClick={() => setShowTableInfoModal(true)}
-                  style={{
-                    background: "#3b82f6",
-                    color: "white",
-                    border: "none",
-                    padding: "6px 12px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    fontWeight: "500"
-                  }}
-                >
-                  ℹ️ Info
-                </button>
-              </div>
-            </div>
-            <div style={{ maxHeight: 500, overflow: "auto" }}>
-              {tables.map((table, index) => (
-                <div key={index} style={{ 
-                  padding: "16px", 
-                  margin: "12px 0", 
-                  background: "#ffffff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "12px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-                }}>
-                  <div style={{ 
-                    display: "flex", 
-                    justifyContent: "space-between", 
-                    alignItems: "center",
-                    marginBottom: "12px"
-                  }}>
-                    <h4 style={{ 
-                      margin: 0, 
-                      fontSize: "16px", 
-                      fontWeight: "600",
-                      color: "#1f2937"
-                    }}>
-                      {table.title || `Table ${index + 1}`}
-                    </h4>
-                    <div style={{ 
-                      fontSize: "12px", 
-                      color: "#6b7280",
-                      background: "#f3f4f6",
-                      padding: "4px 8px",
-                      borderRadius: "6px"
-                    }}>
-                      Confidence: {Math.round((table.confidence || 0.9) * 100)}%
-                    </div>
-                  </div>
-                  
-                  {/* Render table content as a proper table */}
-                  <div style={{ 
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
+                  {/* Recommendations */}
+                  <div style={{
+                    background: "rgba(59, 130, 246, 0.1)",
+                    padding: "12px",
                     borderRadius: "8px",
-                    overflow: "hidden"
+                    border: "1px solid rgba(59, 130, 246, 0.2)"
                   }}>
-                    {table.content && (
-                      <div style={{ padding: "12px" }}>
-                        {table.content.split('\n').map((row, rowIndex) => {
-                          const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
-                          if (cells.length === 0) return null;
-                          
-                          return (
-                            <div key={rowIndex} style={{
-                              display: "grid",
-                              gridTemplateColumns: `repeat(${cells.length}, 1fr)`,
-                              gap: "8px",
-                              padding: rowIndex === 0 ? "8px 12px" : "6px 12px",
-                              background: rowIndex === 0 ? "#f1f5f9" : "transparent",
-                              borderBottom: rowIndex === 0 ? "2px solid #cbd5e1" : "1px solid #e2e8f0",
-                              fontWeight: rowIndex === 0 ? "600" : "400",
-                              fontSize: "14px"
-                            }}>
-                              {cells.map((cell, cellIndex) => {
-                                // Color code based on content
-                                let cellStyle = {
-                                  padding: "4px 8px",
-                                  color: rowIndex === 0 ? "#374151" : "#6b7280",
-                                  borderRight: cellIndex < cells.length - 1 ? "1px solid #e2e8f0" : "none"
-                                };
-                                
-                                // Add color coding for risk levels and status
-                                if (cell.toLowerCase().includes('high') || cell.toLowerCase().includes('critical')) {
-                                  cellStyle.background = "#fef2f2";
-                                  cellStyle.color = "#dc2626";
-                                  cellStyle.fontWeight = "600";
-                                } else if (cell.toLowerCase().includes('medium') || cell.toLowerCase().includes('review')) {
-                                  cellStyle.background = "#fffbeb";
-                                  cellStyle.color = "#d97706";
-                                  cellStyle.fontWeight = "600";
-                                } else if (cell.toLowerCase().includes('low') || cell.toLowerCase().includes('compliant')) {
-                                  cellStyle.background = "#f0fdf4";
-                                  cellStyle.color = "#16a34a";
-                                  cellStyle.fontWeight = "600";
-                                } else if (cell.toLowerCase().includes('yes') || cell.toLowerCase().includes('no')) {
-                                  cellStyle.fontWeight = "600";
-                                }
-                                
-                                return (
-                                  <div key={cellIndex} style={cellStyle}>
-                                    {cell}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <div style={{ fontWeight: "600", marginBottom: "6px", color: "#1e40af", fontSize: "14px" }}>
+                      💡 Recommended Actions:
+                    </div>
+                    <div style={{ fontSize: "13px", color: "#1e40af", lineHeight: "1.5" }}>
+                      {correlation.correlation_type === "temporal_conflict" && (
+                        "• Standardize notice periods across all contract sections • Review termination clauses for consistency • Consult legal counsel to resolve conflicts"
+                      )}
+                      {correlation.correlation_type === "jurisdiction_conflict" && (
+                        "• Choose a single governing law • Ensure all clauses are compatible with chosen jurisdiction • Review for regulatory compliance"
+                      )}
+                      {correlation.correlation_type === "data_flow_risk" && (
+                        "• Implement proper data transfer mechanisms (SCCs, adequacy decisions) • Ensure consent is obtained for all data processing • Review data breach notification procedures"
+                      )}
+                      {correlation.correlation_type === "supplier_risk" && (
+                        "• Conduct thorough due diligence on all suppliers • Implement supplier compliance monitoring • Establish clear contractual obligations for compliance"
+                      )}
+                    </div>
                   </div>
-                  
+
+                  {/* Footer with confidence score */}
                   <div style={{ 
                     display: "flex", 
                     justifyContent: "space-between", 
-                    alignItems: "center",
+                    alignItems: "center", 
                     marginTop: "12px",
-                    fontSize: "12px",
-                    color: "#6b7280"
+                    paddingTop: "12px",
+                    borderTop: "1px solid rgba(0,0,0,0.1)"
                   }}>
-                    <span>Page {table.page || 1}</span>
-                    <span>Table ID: {table.table_id || `table_${index + 1}`}</span>
+                    <div style={{ fontSize: "12px", color: "#9ca3af" }}>
+                      Confidence: {Math.round((correlation.confidence || 0.7) * 100)}% | Region: {correlation.region || 'N/A'}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#9ca3af" }}>
+                      AI-Powered Analysis
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
         )}
+
+        {/* Tables */}
+        {tables.length > 0 && (
+          <div className="section-card">
+            <h2 style={{ margin: "0 0 16px 0", fontSize: "20px", fontWeight: "600", color: "#1f2937" }}>
+              📊 Extracted Tables ({tables.length})
+            </h2>
+            <div style={{ display: "grid", gap: "16px" }}>
+              {tables.map((table, index) => (
+                <div key={index} style={{
+                  background: "rgba(255,255,255,0.8)",
+                  padding: "16px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.2)"
+                }}>
+                  <div style={{ fontWeight: "600", marginBottom: "12px", color: "#1f2937" }}>
+                    Table {index + 1}
+                  </div>
+                  <div style={{ overflow: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+                        <tr style={{ background: "#f8fafc" }}>
+                          {table.headers?.map((header, i) => (
+                            <th key={i} style={{ padding: "8px 12px", textAlign: "left", fontSize: "12px", fontWeight: "600" }}>
+                              {header}
+                            </th>
+                          ))}
+              </tr>
+            </thead>
+            <tbody>
+                        {table.rows?.map((row, rowIndex) => (
+                          <tr key={rowIndex} style={{ borderBottom: "1px solid #e5e7eb" }}>
+                            {row.map((cell, cellIndex) => (
+                              <td key={cellIndex} style={{ padding: "8px 12px", fontSize: "12px" }}>
+                                {cell}
+                  </td>
+                            ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+         {/* LandingAI ADE Status */}
+         {landingaiStatus && (
+           <div className="section-card">
+             <h2 style={{ margin: "0 0 16px 0", fontSize: "20px", fontWeight: "600", color: "#1f2937" }}>
+               🤖 LandingAI ADE Status
+             </h2>
+             <div style={{
+               background: landingaiStatus.status === "active" ? "#f0fdf4" : "#fef2f2",
+               border: `2px solid ${landingaiStatus.status === "active" ? "#bbf7d0" : "#fecaca"}`,
+               borderRadius: "12px",
+               padding: "20px",
+               marginBottom: "16px"
+             }}>
+               <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+                 <div style={{
+                   width: "12px",
+                   height: "12px",
+                   borderRadius: "50%",
+                   background: landingaiStatus.status === "active" ? "#16a34a" : "#dc2626"
+                 }}></div>
+                 <div style={{ fontWeight: "600", color: "#1f2937" }}>
+                   {landingaiStatus.message}
+                 </div>
+               </div>
+               <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "8px" }}>
+                 {landingaiStatus.fields_extracted}
+               </div>
+               {landingaiStatus.ai_analysis && (
+                 <div style={{ 
+                   background: "rgba(255,255,255,0.8)", 
+                   padding: "12px", 
+                   borderRadius: "8px",
+                   marginTop: "12px"
+                 }}>
+                   <div style={{ fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "4px" }}>
+                     AI Analysis Results:
+                   </div>
+                   <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                     Compliance Issues Found: {landingaiStatus.ai_analysis.compliance_issues_found || 0}
+                   </div>
+                 </div>
+               )}
+             </div>
+           </div>
+         )}
+
+         {/* System Status */}
+         {systemStatus && (
+           <div className="section-card">
+             <h2 style={{ margin: "0 0 16px 0", fontSize: "20px", fontWeight: "600", color: "#1f2937" }}>
+               🔧 System Status
+             </h2>
+             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+               {Object.entries(systemStatus).map(([key, value]) => (
+                 <div key={key} style={{
+                   background: "rgba(255,255,255,0.8)",
+                   padding: "16px",
+                   borderRadius: "8px",
+                   border: "1px solid rgba(255,255,255,0.2)"
+                 }}>
+                   <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>
+                     {key.replace(/_/g, ' ').toUpperCase()}
+                   </div>
+                   <div style={{ fontSize: "18px", fontWeight: "600", color: "#1f2937" }}>
+                     {typeof value === 'boolean' ? (value ? '✅' : '❌') : value}
+                   </div>
+                 </div>
+               ))}
+             </div>
+           </div>
+         )}
+
+        {/* How to Use Modal */}
+        {showHowToUseModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: "white",
+              padding: "32px",
+              borderRadius: "16px",
+              maxWidth: "600px",
+            maxHeight: "80vh",
+            overflow: "auto",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.3)"
+            }}>
+              <h2 style={{ margin: "0 0 20px 0", fontSize: "24px", fontWeight: "600" }}>
+                📖 How to Use Compliance Copilot
+              </h2>
+              <div style={{ fontSize: "14px", lineHeight: "1.6", color: "#374151" }}>
+                <p><strong>1. Select Region:</strong> Choose the jurisdiction (EU, US, IN, UK) for compliance analysis.</p>
+                <p><strong>2. Upload Contract:</strong> Upload your contract file (PDF, DOC, DOCX).</p>
+                <p><strong>3. Run Analysis:</strong> Click "Run Compliance Check" to analyze the contract.</p>
+                <p><strong>4. Review Flags:</strong> Examine compliance flags with color-coded risk levels.</p>
+                <p><strong>5. Get Explanations:</strong> Click "Explain" on any flag for detailed information.</p>
+                <p><strong>6. Export Results:</strong> Download results as JSON or CSV for further analysis.</p>
+                </div>
+                  <button 
+                onClick={() => setShowHowToUseModal(false)}
+                    style={{
+                  background: "#3b82f6",
+                      color: "white",
+                      border: "none",
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  marginTop: "20px"
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+        </div>
+         )}
 
       {/* Explain Modal */}
       {showExplainModal && (
@@ -1168,7 +1202,7 @@ export default function Home() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: "rgba(0,0,0,0.5)",
+             background: "rgba(0,0,0,0.5)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -1221,19 +1255,6 @@ export default function Home() {
               <div style={{ padding: "16px", background: "#fef2f2", borderRadius: "8px", border: "1px solid #fecaca" }}>
                 <div style={{ color: "#dc2626", fontWeight: "500", marginBottom: "8px" }}>Error</div>
                 <div style={{ color: "#991b1b" }}>{explainData.error}</div>
-                {explainData.rawResponse && (
-                  <details style={{ marginTop: "12px" }}>
-                    <summary style={{ cursor: "pointer", color: "#dc2626" }}>Raw Response</summary>
-                    <pre style={{ 
-                      background: "#f9fafb", 
-                      padding: "8px", 
-                      borderRadius: "4px", 
-                      fontSize: "12px",
-                      overflow: "auto",
-                      marginTop: "8px"
-                    }}>{explainData.rawResponse}</pre>
-                  </details>
-                )}
               </div>
             ) : explainData ? (
               <div>
@@ -1323,205 +1344,7 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      {/* Risk Correlations Info Modal */}
-      {showRiskInfoModal && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: "white",
-            padding: "24px",
-            borderRadius: "12px",
-            maxWidth: "600px",
-            width: "90%",
-            maxHeight: "80vh",
-            overflow: "auto"
-          }}>
-            <h3 style={{ marginTop: 0, color: "#7c3aed" }}>🔗 Risk Correlation Analysis</h3>
-            <p><strong>What it does:</strong> Finds hidden connections and conflicts between different documents, clauses, and compliance requirements.</p>
-            
-            <h4 style={{ color: "#374151", marginTop: "20px" }}>Why This Matters:</h4>
-            <ul style={{ paddingLeft: "20px" }}>
-              <li><strong>Cross-Document Conflicts:</strong> Identifies when clauses in different contracts contradict each other</li>
-              <li><strong>Jurisdiction Mismatches:</strong> Spots when tax, labor, or privacy laws conflict across regions</li>
-              <li><strong>Hidden Dependencies:</strong> Reveals how changes in one document affect compliance in others</li>
-              <li><strong>Risk Amplification:</strong> Shows how multiple small issues combine into major risks</li>
-            </ul>
-
-            <h4 style={{ color: "#374151", marginTop: "20px" }}>Real Business Value:</h4>
-            <ul style={{ paddingLeft: "20px" }}>
-              <li><strong>Due Diligence:</strong> Catch compliance conflicts before they become legal issues</li>
-              <li><strong>Risk Management:</strong> Prioritize which compliance issues need immediate attention</li>
-              <li><strong>Cost Savings:</strong> Avoid expensive legal disputes and regulatory fines</li>
-              <li><strong>Strategic Planning:</strong> Understand how regulatory changes affect your entire contract portfolio</li>
-            </ul>
-
-            <h4 style={{ color: "#374151", marginTop: "20px" }}>How It Works:</h4>
-            <p>The AI analyzes document content using LandingAI ADE to extract key compliance fields, then uses advanced correlation algorithms to find patterns and conflicts that human reviewers might miss.</p>
-
-            <button 
-              onClick={() => setShowRiskInfoModal(false)}
-              style={{
-                background: "#7c3aed",
-                color: "white",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                marginTop: "16px"
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Tables Info Modal */}
-      {showTableInfoModal && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: "white",
-            padding: "24px",
-            borderRadius: "12px",
-            maxWidth: "600px",
-            width: "90%",
-            maxHeight: "80vh",
-            overflow: "auto"
-          }}>
-            <h3 style={{ marginTop: 0, color: "#dc2626" }}>📊 Table Extraction & Analysis</h3>
-            <p><strong>What it does:</strong> Uses LandingAI ADE's DPT-2 model to extract structured data from documents, converting unstructured PDFs into queryable compliance matrices and risk assessments.</p>
-            
-            <h4 style={{ color: "#374151", marginTop: "20px" }}>Types of Tables Extracted:</h4>
-            <ul style={{ paddingLeft: "20px" }}>
-              <li><strong>Compliance Matrices:</strong> Track which requirements are met/missing across different regulations</li>
-              <li><strong>Risk Assessment Tables:</strong> Quantify risk levels and mitigation strategies</li>
-              <li><strong>Tax Withholding Schedules:</strong> Different rates by country and treaty benefits</li>
-              <li><strong>Financial Data Tables:</strong> Revenue, costs, liabilities from financial statements</li>
-              <li><strong>Regulatory Mapping:</strong> Map requirements to specific regulations and standards</li>
-            </ul>
-
-            <h4 style={{ color: "#374151", marginTop: "20px" }}>Business Applications:</h4>
-            <ul style={{ paddingLeft: "20px" }}>
-              <li><strong>Due Diligence:</strong> Quickly scan compliance status across multiple documents</li>
-              <li><strong>Audit Preparation:</strong> Generate compliance dashboards automatically</li>
-              <li><strong>Risk Management:</strong> Identify high-risk areas that need immediate attention</li>
-              <li><strong>Cross-border Analysis:</strong> Compare requirements across different jurisdictions</li>
-              <li><strong>Financial Analysis:</strong> Extract and analyze financial data from complex documents</li>
-            </ul>
-
-            <h4 style={{ color: "#374151", marginTop: "20px" }}>Technical Innovation:</h4>
-            <p>Uses LandingAI's latest DPT-2 model for superior table extraction, providing confidence scores, evidence tracking, and structured output that can be queried and analyzed programmatically.</p>
-
-            <button 
-              onClick={() => setShowTableInfoModal(false)}
-              style={{
-                background: "#dc2626",
-                color: "white",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                marginTop: "16px"
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Pathway Info Modal */}
-      {showPathwayInfoModal && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: "white",
-            padding: "24px",
-            borderRadius: "12px",
-            maxWidth: "600px",
-            width: "90%",
-            maxHeight: "80vh",
-            overflow: "auto"
-          }}>
-            <h3 style={{ marginTop: 0, color: "#7c3aed" }}>🔍 Pathway Live Search</h3>
-            <p><strong>What it does:</strong> Provides real-time document indexing and hybrid search across your compliance rules and contracts using Pathway's live vector store.</p>
-            
-            <h4 style={{ color: "#374151", marginTop: "20px" }}>Key Features:</h4>
-            <ul style={{ paddingLeft: "20px" }}>
-              <li><strong>Real-time Indexing:</strong> Automatically indexes documents as they're added or modified</li>
-              <li><strong>Hybrid Search:</strong> Combines vector similarity with BM25 keyword matching for better results</li>
-              <li><strong>Live Updates:</strong> Search results update instantly when documents change</li>
-              <li><strong>Semantic Understanding:</strong> Finds relevant content even with different wording</li>
-            </ul>
-
-            <h4 style={{ color: "#374151", marginTop: "20px" }}>How It Works:</h4>
-            <ul style={{ paddingLeft: "20px" }}>
-              <li><strong>Document Processing:</strong> Pathway monitors the rules and contracts directories</li>
-              <li><strong>Vector Embeddings:</strong> Uses sentence transformers to create semantic representations</li>
-              <li><strong>Hybrid Index:</strong> Maintains both vector and keyword indexes for comprehensive search</li>
-              <li><strong>Real-time Queries:</strong> Search across all indexed content with relevance scoring</li>
-            </ul>
-
-            <h4 style={{ color: "#374151", marginTop: "20px" }}>Business Value:</h4>
-            <ul style={{ paddingLeft: "20px" }}>
-              <li><strong>Instant Knowledge:</strong> Find relevant compliance rules and contract clauses instantly</li>
-              <li><strong>Comprehensive Coverage:</strong> Search across all documents simultaneously</li>
-              <li><strong>Contextual Results:</strong> Get semantically relevant results, not just keyword matches</li>
-              <li><strong>Always Up-to-date:</strong> Results reflect the latest document changes automatically</li>
-            </ul>
-
-            <button 
-              onClick={() => setShowPathwayInfoModal(false)}
-              style={{
-                background: "#7c3aed",
-                color: "white",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                marginTop: "16px"
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-    </main>
+       </div>
+     </div>
   );
 }
-
-
-

@@ -7,7 +7,7 @@ CATEGORIES = ["privacy", "labor", "tax"]
 def check(fields: List[ContractField], region: str) -> List[ComplianceFlag]:
     flags: List[ComplianceFlag] = []
     for cat in CATEGORIES:
-        hits = retrieve(cat, top_k=1)
+        hits = retrieve(cat, region, top_k=1)  # Pass region parameter
         if not hits:
             continue
         rule_text, _ = hits[0]

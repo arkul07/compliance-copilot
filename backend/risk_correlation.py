@@ -123,11 +123,49 @@ class RiskCorrelationEngine:
                     notice_periods.append(field)
             
             if len(notice_periods) > 1:
+                # Extract plain text from field values (handle Chunk objects)
+                processed_fields = []
+                for f in notice_periods:
+                    field_value = f.value
+                    # If it's a Chunk object, extract the text content
+                    if hasattr(field_value, 'markdown'):
+                        field_value = field_value.markdown
+                    elif hasattr(field_value, 'text'):
+                        field_value = field_value.text
+                    elif isinstance(field_value, str) and 'Chunk(' in field_value:
+                        # Extract text from Chunk string representation
+                        import re
+                        markdown_match = re.search(r'markdown="([^"]*)"', str(field_value))
+                        if markdown_match:
+                            field_value = markdown_match.group(1)
+                        else:
+                            field_value = str(field_value)[:200] + "..." if len(str(field_value)) > 200 else str(field_value)
+                    
+                    # Clean up the text content
+                    if isinstance(field_value, str):
+                        # Remove HTML tags and clean up the text
+                        import re
+                        field_value = re.sub(r'<[^>]*>', '', field_value)  # Remove HTML tags
+                        field_value = re.sub(r'<a[^>]*>', '', field_value)  # Remove anchor tags
+                        field_value = re.sub(r'</a>', '', field_value)     # Remove closing anchor tags
+                        field_value = re.sub(r'\n+', ' ', field_value)     # Replace multiple newlines with space
+                        field_value = re.sub(r'\s+', ' ', field_value)     # Replace multiple spaces with single space
+                        field_value = field_value.strip()
+                        
+                        # Truncate if too long
+                        if len(field_value) > 300:
+                            field_value = field_value[:300] + "..."
+                    
+                    processed_fields.append({
+                        "name": f.name, 
+                        "value": field_value
+                    })
+                
                 temporal_risks.append({
                     "correlation_type": "temporal_conflict",
                     "description": "Conflicting notice periods found across documents",
                     "risk_level": "MEDIUM",
-                    "fields": [{"name": f.name, "value": f.value} for f in notice_periods],
+                    "fields": processed_fields,
                     "region": region,
                     "confidence": 0.7
                 })

@@ -184,6 +184,47 @@ def extract_with_ade(ade_client, pdf_path: str) -> List[ContractField]:
         logger.info("Falling back to enhanced extraction due to ADE error")
         return extract_basic_fields(pdf_path)
 
+def parse_table_content(content: str) -> Dict[str, Any]:
+    """
+    Parse table content from text into headers and rows
+    """
+    try:
+        lines = content.strip().split('\n')
+        if not lines:
+            return {"headers": [], "rows": []}
+        
+        # Find the first non-empty line as headers
+        headers = []
+        rows = []
+        
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Split by pipe, tab, or multiple spaces
+            if '|' in line:
+                cells = [cell.strip() for cell in line.split('|') if cell.strip()]
+            elif '\t' in line:
+                cells = [cell.strip() for cell in line.split('\t') if cell.strip()]
+            else:
+                # Try to split by multiple spaces
+                cells = [cell.strip() for cell in line.split() if cell.strip()]
+            
+            if not cells:
+                continue
+                
+            if i == 0:  # First line is headers
+                headers = cells
+            else:  # Subsequent lines are rows
+                rows.append(cells)
+        
+        return {"headers": headers, "rows": rows}
+        
+    except Exception as e:
+        logger.error(f"Error parsing table content: {e}")
+        return {"headers": [], "rows": []}
+
 def extract_basic_fields(pdf_path: str) -> List[ContractField]:
     """
     Enhanced basic field extraction fallback when ADE is not available
@@ -281,10 +322,15 @@ def extract_tables(pdf_path: str) -> List[Dict[str, Any]]:
             
             # Look for table-like patterns (rows with multiple columns)
             if '|' in chunk_text or '\t' in chunk_text or 'table' in chunk_text.lower():
+                # Parse table content into headers and rows
+                parsed_table = parse_table_content(chunk_text)
+                
                 # Extract table structure
                 table_data = {
                     "table_id": f"table_{len(tables) + 1}",
                     "title": f"Extracted Table {len(tables) + 1}",
+                    "headers": parsed_table.get("headers", []),
+                    "rows": parsed_table.get("rows", []),
                     "content": chunk_text,
                     "page": getattr(chunk, 'page', 1),
                     "confidence": 0.9
@@ -298,6 +344,13 @@ def extract_tables(pdf_path: str) -> List[Dict[str, Any]]:
                 {
                     "table_id": "compliance_matrix",
                     "title": "GDPR Compliance Matrix",
+                    "headers": ["Requirement", "Status", "Evidence", "Risk Level"],
+                    "rows": [
+                        ["Data Processing Lawful Basis", "Compliant", "Article 6(1)(b)", "LOW"],
+                        ["Data Subject Rights", "Compliant", "Articles 15-22", "LOW"],
+                        ["Cross-border Transfer", "Needs Review", "SCCs Required", "MEDIUM"],
+                        ["Data Breach Notification", "Compliant", "Article 33", "LOW"]
+                    ],
                     "content": "Requirement | Status | Evidence | Risk Level\nData Processing Lawful Basis | Compliant | Article 6(1)(b) | LOW\nData Subject Rights | Compliant | Articles 15-22 | LOW\nCross-border Transfer | Needs Review | SCCs Required | MEDIUM\nData Breach Notification | Compliant | Article 33 | LOW",
                     "page": 3,
                     "confidence": 0.95
@@ -305,6 +358,13 @@ def extract_tables(pdf_path: str) -> List[Dict[str, Any]]:
                 {
                     "table_id": "tax_withholding",
                     "title": "Tax Withholding Schedule", 
+                    "headers": ["Country", "Rate", "Treaty Benefit", "Documentation"],
+                    "rows": [
+                        ["Germany", "15%", "Yes", "W-8BEN"],
+                        ["France", "15%", "Yes", "W-8BEN"],
+                        ["UK", "20%", "No", "Local Certificate"],
+                        ["Italy", "15%", "Yes", "W-8BEN"]
+                    ],
                     "content": "Country | Rate | Treaty Benefit | Documentation\nGermany | 15% | Yes | W-8BEN\nFrance | 15% | Yes | W-8BEN\nUK | 20% | No | Local Certificate\nItaly | 15% | Yes | W-8BEN",
                     "page": 5,
                     "confidence": 0.88
@@ -312,6 +372,13 @@ def extract_tables(pdf_path: str) -> List[Dict[str, Any]]:
                 {
                     "table_id": "risk_assessment",
                     "title": "Compliance Risk Assessment",
+                    "headers": ["Risk Category", "Probability", "Impact", "Mitigation"],
+                    "rows": [
+                        ["Data Privacy", "Medium", "High", "GDPR Compliance"],
+                        ["Tax Compliance", "Low", "Medium", "Treaty Benefits"],
+                        ["Labor Law", "Low", "High", "EU Standards"],
+                        ["IP Protection", "Low", "Medium", "Standard Clauses"]
+                    ],
                     "content": "Risk Category | Probability | Impact | Mitigation\nData Privacy | Medium | High | GDPR Compliance\nTax Compliance | Low | Medium | Treaty Benefits\nLabor Law | Low | High | EU Standards\nIP Protection | Low | Medium | Standard Clauses",
                     "page": 7,
                     "confidence": 0.92

@@ -1,7 +1,7 @@
 [
   {
     "name": "privacy_policy_reference",
-    "value": "Chunk(id='bedb5837-3a20-40f9-a282-f9112b8eda46', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.22281335294246674, left=0.12305733561515808, right=0.6694424152374268, top=0.1320437639951706), page=0), markdown=\"<a id='bedb5837-3a20-40f9-a282-f9112b8eda46'></a>\\n\\n# Scenario 1: Data Privacy Conflict\\n\\nContract: Allows transfer to non-adequate countries without safeguards.\\nRule: GDPR requires SCCs or adequacy.\\nConflict: Non-compliance with GDPR cross-border rules.\\nResolution: Add SCCs or Binding Corporate Rules.\", type='text')",
+    "value": "Chunk(id='f12ae464-dbab-466a-a4af-a1efb93d5c9c', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.22281335294246674, left=0.12305733561515808, right=0.6694424152374268, top=0.1320437639951706), page=0), markdown=\"<a id='f12ae464-dbab-466a-a4af-a1efb93d5c9c'></a>\\n\\n# Scenario 1: Data Privacy Conflict\\n\\nContract: Allows transfer to non-adequate countries without safeguards.\\nRule: GDPR requires SCCs or adequacy.\\nConflict: Non-compliance with GDPR cross-border rules.\\nResolution: Add SCCs or Binding Corporate Rules.\", type='text')",
     "evidence": {
       "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/compliance_conflict_scenarios.pdf",
       "page": 1,
@@ -10,7 +10,7 @@
   },
   {
     "name": "termination_notice",
-    "value": "Chunk(id='1eab748e-e3b1-40a5-9e08-cdf2e4222ee6', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.3381664454936981, left=0.12159159779548645, right=0.5608416795730591, top=0.24502460658550262), page=0), markdown=\"<a id='1eab748e-e3b1-40a5-9e08-cdf2e4222ee6'></a>\\n\\n## Scenario 2: Labor Law Mismatch\\n\\nContract: 7-day termination notice.\\nLaw: Local labor law requires 30 days.\\nConflict: Gap in compliance with statutory notice.\\nResolution: Amend contract to match statutory minimum.\", type='text')",
+    "value": "Chunk(id='52a12416-acdd-4b49-b526-707fadb9346e', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.3381664454936981, left=0.12159159779548645, right=0.5608416795730591, top=0.24502460658550262), page=0), markdown=\"<a id='52a12416-acdd-4b49-b526-707fadb9346e'></a>\\n\\n## Scenario 2: Labor Law Mismatch\\n\\nContract: 7-day termination notice.\\nLaw: Local labor law requires 30 days.\\nConflict: Gap in compliance with statutory notice.\\nResolution: Amend contract to match statutory minimum.\", type='text')",
     "evidence": {
       "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/compliance_conflict_scenarios.pdf",
       "page": 1,
@@ -19,7 +19,7 @@
   },
   {
     "name": "jurisdiction",
-    "value": "Chunk(id='1b776052-15e8-4797-acab-bd6a0e5ecee4', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.45356833934783936, left=0.12183968722820282, right=0.5490024089813232, top=0.3588196635246277), page=0), markdown=\"<a id='1b776052-15e8-4797-acab-bd6a0e5ecee4'></a>\\n\\n# Scenario 3: Tax Jurisdiction Conflict\\n\\nContract: Specifies US tax withholding.\\nLaw: EU client eligible for tax treaty benefits.\\nConflict: Over-withholding leads to double taxation.\\nResolution: Apply treaty relief and adjust withholding.\", type='text')",
+    "value": "Chunk(id='3617e3d2-cb3d-4acc-8ca7-e9eb261a4cef', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.45356833934783936, left=0.12183968722820282, right=0.5490024089813232, top=0.3588196635246277), page=0), markdown=\"<a id='3617e3d2-cb3d-4acc-8ca7-e9eb261a4cef'></a>\\n\\n# Scenario 3: Tax Jurisdiction Conflict\\n\\nContract: Specifies US tax withholding.\\nLaw: EU client eligible for tax treaty benefits.\\nConflict: Over-withholding leads to double taxation.\\nResolution: Apply treaty relief and adjust withholding.\", type='text')",
     "evidence": {
       "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/compliance_conflict_scenarios.pdf",
       "page": 1,
