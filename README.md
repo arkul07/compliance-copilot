@@ -12,7 +12,7 @@ A real-time **compliance assistant** that reads contracts/policies, compares the
 ---
 
 ## Setup
-**Prereqs:** Python 3.10+, Git (Node.js optional).  
+**Prereqs:** Python 3.10+, Node.js 18+, Git.  
 **Windows PowerShell**
 ```powershell
 Set-ExecutionPolicy -Scope Process RemoteSigned -Force
@@ -41,13 +41,14 @@ python -m uvicorn backend.app:app --reload
 
 **Terminal 2 (UI)**
 
-```powershell
-.\.venv\Scripts\Activate.ps1
-python -m streamlit run ui/app.py
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 API: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
-UI : [http://localhost:8501](http://localhost:8501)
+UI : [http://localhost:3000](http://localhost:3000)
 
 ---
 

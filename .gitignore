@@ -23,12 +23,24 @@ MANIFEST
 
 # Virtual environments
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Large binary files
+*.pdf
+*.dll
+*.exe
+*.so
+*.dylib
+*.pyd
+*.wasm
+*.node
+*.lib
+*.dylib
 
 # IDE
 .vscode/

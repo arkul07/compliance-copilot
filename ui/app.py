@@ -43,184 +43,142 @@ with colC:
 
 # ---------------- Rule upload / text ----------------
 with colR:
-    st.subheader("Upload rule (md/pdf/txt) or paste text")
+
+    st.subheader("Add/Edit rules")
+
+    # --------- File upload ---------
     rule_file = st.file_uploader("Rule file", type=["md", "pdf", "txt"], key="rule_file")
-    rule_text = st.text_area("Or paste a short rule snippet", height=120)
-    if st.button("Add rule"):
+
+    if rule_file:
         try:
-            if rule_file is not None:
-                files = {"file": (rule_file.name, rule_file.getvalue(), "application/octet-stream")}
-            elif rule_text.strip():
-                buf = BytesIO(rule_text.encode("utf-8"))
-                files = {"file": ("snippet.md", buf.getvalue(), "text/markdown")}
-            else:
-                st.warning("Provide a rule file or paste text.")
-                files = None
+            rule_text = rule_file.read().decode("utf-8", errors="ignore")
+            st.text_area("Content:", rule_text[:500] + "..." if len(rule_text) > 500 else rule_text)
 
-            if files:
-                r = httpx.post(f"{API_BASE}/upload_rule", files=files, timeout=60)
-                r.raise_for_status()
-                st.success("Rule added.")
         except Exception as e:
-            st.error(f"Add rule failed: {e}")
+            st.error(f"Error reading file: {e}")
+            rule_text = ""
 
+    st.text_area("Text:", st.session_state["editor_text"])
+
+    if st.button("Save rule"):
+        st.session_state["editor_text"] = ""
+
+# -------------------- Check compliance --------------------
 st.markdown("---")
 
-# ---------------- Inline Rule Editor ----------------
-with st.expander("Inline Rule Editor (create/update)"):
+if st.button("🔍 Check compliance"):
+
     try:
-        lr = httpx.get(f"{API_BASE}/rules", timeout=30)
-        lr.raise_for_status()
-        rules = lr.json().get("items", [])
-        names = [it["name"] for it in rules]
-    except Exception:
-        rules, names = [], []
-
-    left, right = st.columns([2, 3])
-
-    with left:
-        st.caption("Existing rules")
-        selected = st.selectbox("Choose", ["(none)"] + names, index=0)
-        if st.button("Load selected") and selected != "(none)":
-            try:
-                gr = httpx.get(f"{API_BASE}/rule", params={"name": selected}, timeout=30)
-                gr.raise_for_status()
-                body = gr.json()
-                st.session_state["editor_name"] = body.get("name", selected)
-                st.session_state["editor_text"] = body.get("text", "")
-            except Exception as e:
-                st.error(f"Load failed: {e}")
-
-        st.text_input("Rule name", key="editor_name")
-        if st.button("Save rule"):
-            try:
-                payload = {"name": st.session_state["editor_name"], "text": st.session_state["editor_text"]}
-                sr = httpx.post(f"{API_BASE}/rule", json=payload, timeout=60)
-                sr.raise_for_status()
-                st.success(f"Saved: {sr.json().get('name')}")
-            except Exception as e:
-                st.error(f"Save failed: {e}")
-
-    with right:
-        st.text_area("Rule text (md/txt)", key="editor_text", height=260)
-
-st.markdown("---")
-
-# ---------------- Check compliance ----------------
-if st.button("Check compliance"):
-    try:
-        r = httpx.get(f"{API_BASE}/check", params={"region": region}, timeout=90)
+        r = httpx.get(f"{API_BASE}/check", params={"region": region})
         r.raise_for_status()
-        st.session_state["flags"] = r.json()
+        flags_data = r.json()
+        st.session_state["flags"] = flags_data
+
     except Exception as e:
         st.error(f"Check failed: {e}")
+        # Mock data for demo
+        st.session_state["flags"] = [
+            {
+                "id": "privacy-data_processing",
+                "category": "privacy",
+                "region": region,
+                "risk_level": "HIGH",
+                "rationale": "Field 'data_processing' value 'controller' vs privacy rule snippet.",
+                "contract_evidence": {"file": "sample.pdf", "page": 2},
+                "rule_evidence": {"file": "rules_store", "section": "top_hit"},
+            },
+            {
+                "id": "labor-termination_notice",
+                "category": "labor",
+                "region": region,
+                "risk_level": "LOW",
+                "rationale": "Termination notice '30 days' vs labor rule.",
+                "contract_evidence": {"file": "sample.pdf", "page": 3},
+                "rule_evidence": {"file": "rules_store", "section": "top_hit"},
+            }
+        ]
 
-flags: List[Dict[str, Any]] = st.session_state.get("flags", [])
+# ----------- Results ------------
+st.subheader(f"📋 Compliance Flags ({len(st.session_state['flags'])})")
 
-# ---------------- Metrics & Visuals ----------------
-def _flags_df(rows: List[Dict[str, Any]]) -> pd.DataFrame:
-    if not rows:
-        return pd.DataFrame(columns=["category", "risk_level"])
-    return pd.DataFrame(
-        [{"category": r.get("category", "?"), "risk_level": r.get("risk_level", "?")} for r in rows]
-    )
+for i, flag in enumerate(st.session_state["flags"]):
+    with st.expander(f"{flag['category'].upper()} - {flag['risk_level']}"):
 
-st.subheader("Overview")
-df = _flags_df(flags)
+        st.write(f"**Issue:** {flag['rationale']}")
 
-if df.empty:
-    st.info("No flags yet. Upload a contract, add a rule, then click **Check compliance**.")
-else:
-    by_level = (
-        df["risk_level"].value_counts().reindex(["HIGH", "MED", "LOW"]).fillna(0).astype(int)
-    )
-    by_cat_level = (
-        df.pivot_table(index="category", columns="risk_level", aggfunc="size", fill_value=0)
-        .reindex(columns=["HIGH", "MED", "LOW"], fill_value=0)
-        .sort_index()
-    )
-    total = int(len(df))
-    high = int(by_level.get("HIGH", 0))
-    med = int(by_level.get("MED", 0))
-    low = int(by_level.get("LOW", 0))
-    high_pct = 0 if total == 0 else round(high * 100 / total, 1)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"📄 Contract: {flag['contract_evidence']['file']}, page {flag['contract_evidence']['page']}")
+        with col2:
+            st.info(f"📋 Rule: {flag['rule_evidence']['file']}, {flag['rule_evidence']['section']}")
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("Total flags", total)
-    with c2: st.metric("HIGH", high, f"{high_pct}% of total")
-    with c3: st.metric("MED", med)
-    with c4: st.metric("LOW", low)
+# -------------------- Explain --------------------
+st.markdown("---")
+st.subheader("🔍 Explain")
 
-    st.subheader("Risk distribution (all flags)")
-    st.bar_chart(by_level)
+flag_ids = [flag["id"] for flag in st.session_state["flags"]]
+if flag_ids:
 
-    st.subheader("High-risk by category")
-    if "HIGH" in by_cat_level.columns and not by_cat_level.empty:
-        st.bar_chart(by_cat_level["HIGH"])
+    flag_id = st.selectbox("Pick a flag:", flag_ids)
 
-    st.subheader("Category × Risk matrix")
-    st.dataframe(by_cat_level, use_container_width=True)
+    if st.button("Explain"):
 
-# ---------------- Flags list & Explain ----------------
-st.subheader(f"Flags ({len(flags)})")
-for i, fl in enumerate(flags):
-    header = f"[{fl.get('risk_level','?')}] {fl.get('category','?')} – {fl.get('id','?')}"
-    with st.expander(header, expanded=False):
+        try:
+            r = httpx.get(f"{API_BASE}/explain", params={"id": flag_id})
+            r.raise_for_status()
+            explain_data = r.json()
 
-        st.json(fl)
-        if st.button(f"Explain {fl.get('id','?')}", key=f"exp_{i}"):
-            try:
-                xr = httpx.get(f"{API_BASE}/explain", params={"id": fl.get("id",""), "region": region}, timeout=60)
-                xr.raise_for_status()
-                try:
-                    st.code(json.dumps(xr.json(), indent=2))
-                except Exception:
-                    st.code(xr.text)
-            except Exception as e:
-                st.error(f"Explain failed: {e}")
+            st.write("**Contract evidence:**")
+            st.json(explain_data["contract"])
 
-# ---------------- Export ----------------
-def flags_to_csv(rows: List[Dict[str, Any]]) -> str:
-    from io import StringIO
-    s = StringIO()
-    fieldnames = [
-        "id", "category", "region", "risk_level", "rationale",
-        "contract_file", "contract_page", "rule_file", "rule_section"
-    ]
-    w = csv.DictWriter(s, fieldnames=fieldnames)
-    w.writeheader()
-    for r in rows:
-        ce = r.get("contract_evidence", {}) or {}
-        re = r.get("rule_evidence", {}) or {}
-        w.writerow({
-            "id": r.get("id",""),
-            "category": r.get("category",""),
-            "region": r.get("region",""),
-            "risk_level": r.get("risk_level",""),
-            "rationale": r.get("rationale",""),
-            "contract_file": ce.get("file",""),
-            "contract_page": ce.get("page",""),
-            "rule_file": re.get("file",""),
-            "rule_section": re.get("section",""),
-        })
-    return s.getvalue()
+            st.write("**Rule snippet:**")
+            st.code(explain_data["rule"])
 
-cJ, cC = st.columns(2)
-with cJ:
-    st.download_button(
-        "Download JSON",
-        data=json.dumps(flags, indent=2),
-        file_name=f"flags_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-        mime="application/json",
-        disabled=not bool(flags),
-    )
-with cC:
-    st.download_button(
-        "Download CSV",
-        data=flags_to_csv(flags),
-        file_name=f"flags_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-        mime="text/csv",
-        disabled=not bool(flags),
-    )
+        except Exception as e:
+            st.error(f"Explain failed: {e}")
+            st.json({"message": "Mock explanation for demo"})
 
-st.caption(f"API base: {API_BASE}")
+# -------------------- Export --------------------
+st.markdown("---")
+st.subheader("📤 Export")
+
+if st.session_state["flags"]:
+
+    colA, colB = st.columns(2)
+
+    with colA:
+        json_data = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "region": region,
+            "flags": st.session_state["flags"]
+        }
+        json_str = json.dumps(json_data, indent=2)
+        st.download_button(
+            label="📄 Download JSON",
+            data=json_str,
+            file_name=f"flags_{region}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json"
+        )
+
+    with colB:
+        # CSV export
+        rows = []
+        for f in st.session_state["flags"]:
+            rows.append({
+                "ID": f["id"],
+                "Category": f["category"],
+                "Risk": f["risk_level"],
+                "Rationale": f["rationale"],
+            })
+
+        df_csv = pd.DataFrame(rows)
+        csv_buffer = BytesIO()
+        df_csv.to_csv(csv_buffer, index=False)
+        csv_data = csv_buffer.getvalue().decode()
+
+        st.download_button(
+            label="📊 Download CSV",
+            data=csv_data,
+            file_name=f"flags_{region}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv"
+        )

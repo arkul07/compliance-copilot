@@ -5,7 +5,8 @@ python-dotenv>=1,<2
 httpx>=0.27,<1
 streamlit>=1.33,<2
 landingai
-pathway
+pathway>=0.10.0
 pypdf>=4,<5
 python-multipart>=0.0.9,<1
 pandas>=1.5,<3
+sentence-transformers>=2.2,<3

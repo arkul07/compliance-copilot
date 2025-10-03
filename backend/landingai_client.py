@@ -12,4 +12,3 @@ def extract_fields(pdf_path: str) -> List[ContractField]:
         ContractField(name="termination_notice", value="30 days", evidence=Evidence(file=pdf_path, page=3)),
         ContractField(name="tax_withholding_clause", value="applicable", evidence=Evidence(file=pdf_path, page=4)),
     ]
-

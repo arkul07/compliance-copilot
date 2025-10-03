@@ -14,7 +14,7 @@ def check(fields: List[ContractField], region: str) -> List[ComplianceFlag]:
         # naive mapping: improve later
         for f in fields:
             if cat == "privacy" and f.name == "data_processing":
-                risk = "LOW" if any(w in rule_text.lower() for w in ["controller", "processor"]) else "HIGH"
+                risk = "LOW" if any(w in rule_text.lower() for w in ["controller", "processor"]) else "HIGH" 
                 flags.append(ComplianceFlag(
                     id=f"{cat}-{f.name}",
                     category=cat,
@@ -47,4 +47,3 @@ def check(fields: List[ContractField], region: str) -> List[ComplianceFlag]:
                     rule_evidence=Evidence(file="rules_store", section="top_hit"),
                 ))
     return flags
-
