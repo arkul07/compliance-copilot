@@ -182,6 +182,13 @@ export default function Home() {
   const [anonymizationMethod, setAnonymizationMethod] = useState("mask");
   const [anonymizationInfo, setAnonymizationInfo] = useState(null);
   
+  // Smart Document Correction state
+  const [smartAnalysis, setSmartAnalysis] = useState(null);
+  const [smartCorrectedDocument, setSmartCorrectedDocument] = useState(null);
+  const [isSmartAnalyzing, setIsSmartAnalyzing] = useState(false);
+  const [isSmartGenerating, setIsSmartGenerating] = useState(false);
+  const [smartCorrectionInfo, setSmartCorrectionInfo] = useState(null);
+  
   // Pathway features state
   const [pathwaySearchQuery, setPathwaySearchQuery] = useState("");
   const [pathwayResults, setPathwayResults] = useState([]);
@@ -374,6 +381,77 @@ export default function Home() {
     }
     
     return data;
+  };
+
+  // Smart Document Correction functions
+  const loadSmartCorrectionInfo = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/smart_correction_info`);
+      if (response.ok) {
+        const data = await response.json();
+        setSmartCorrectionInfo(data);
+      }
+    } catch (error) {
+      console.error("Failed to load smart correction info:", error);
+    }
+  };
+
+  const smartAnalyzeDocument = async () => {
+    setIsSmartAnalyzing(true);
+    try {
+      const response = await fetch(`${API_BASE}/smart_analyze_document?region=${region}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSmartAnalysis(data);
+      } else {
+        console.error("Smart analysis failed");
+      }
+    } catch (error) {
+      console.error("Error in smart analysis:", error);
+    } finally {
+      setIsSmartAnalyzing(false);
+    }
+  };
+
+  const smartGenerateCorrectedDocument = async () => {
+    if (!smartAnalysis) return;
+    
+    setIsSmartGenerating(true);
+    try {
+      const response = await fetch(`${API_BASE}/smart_generate_corrected_document?region=${region}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(smartAnalysis),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSmartCorrectedDocument(data);
+      } else {
+        console.error("Smart document generation failed");
+      }
+    } catch (error) {
+      console.error("Error generating smart corrected document:", error);
+    } finally {
+      setIsSmartGenerating(false);
+    }
+  };
+
+  const downloadSmartCorrectedDocument = () => {
+    if (!smartCorrectedDocument) return;
+    
+    const dataStr = JSON.stringify(smartCorrectedDocument, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `smart_corrected_document_${region}_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const downloadJSON = () => {
@@ -626,6 +704,7 @@ export default function Home() {
     getPathwayStats();
     getLiveActivity();
     loadAnonymizationInfo();
+    loadSmartCorrectionInfo();
     
     const interval = setInterval(() => {
       getPathwayStats();
@@ -844,6 +923,9 @@ export default function Home() {
             </button>
             <button onClick={checkSystemStatus} className="button-secondary" disabled={isCheckingStatus}>
               {isCheckingStatus ? "⏳ Checking..." : "🔧 System Status"}
+            </button>
+            <button onClick={smartAnalyzeDocument} className="button-secondary" disabled={isSmartAnalyzing}>
+              {isSmartAnalyzing ? "⏳ Analyzing..." : "🤖 Smart Analysis"}
             </button>
           </div>
         </div>
@@ -1370,6 +1452,197 @@ export default function Home() {
              </div>
            </div>
          )}
+
+        {/* Smart Document Correction */}
+        {smartAnalysis && (
+          <div className="section-card">
+            <h2 style={{ margin: "0 0 16px 0", fontSize: "20px", fontWeight: "600", color: "#1f2937" }}>
+              🤖 Smart Document Correction (Claude AI)
+            </h2>
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ 
+                background: "#f0f9ff", 
+                padding: "12px", 
+                borderRadius: "6px",
+                fontSize: "14px",
+                color: "#1e40af",
+                border: "1px solid #bfdbfe"
+              }}>
+                <strong>Claude AI Enhanced</strong> - Intelligent correction suggestions with legal reasoning
+              </div>
+            </div>
+
+            {/* Smart Summary */}
+            {smartAnalysis.smart_summary && (
+              <div style={{ marginBottom: "20px" }}>
+                <h4 style={{ margin: "0 0 12px 0", fontSize: "16px", fontWeight: "600" }}>
+                  📋 Executive Summary
+                </h4>
+                <div style={{ 
+                  background: "#f8fafc", 
+                  padding: "16px", 
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0"
+                }}>
+                  <p style={{ margin: "0 0 8px 0", fontSize: "14px" }}>
+                    {smartAnalysis.smart_summary.executive_summary}
+                  </p>
+                  <div style={{ display: "flex", gap: "16px", fontSize: "12px", color: "#6b7280" }}>
+                    <span>Compliance Score: {smartAnalysis.smart_summary.compliance_score}/100</span>
+                    <span>Risk Level: {smartAnalysis.smart_summary.risk_assessment}</span>
+                    <span>AI Enhanced: {smartAnalysis.smart_summary.ai_enhanced ? "Yes" : "No"}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Correction Opportunities */}
+            {smartAnalysis.correction_opportunities && smartAnalysis.correction_opportunities.length > 0 && (
+              <div style={{ marginBottom: "20px" }}>
+                <h4 style={{ margin: "0 0 12px 0", fontSize: "16px", fontWeight: "600" }}>
+                  🔧 Correction Opportunities ({smartAnalysis.correction_opportunities.length})
+                </h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {smartAnalysis.correction_opportunities.map((correction, index) => (
+                    <div key={index} style={{ 
+                      background: correction.ai_generated ? "#fef3c7" : "#f3f4f6",
+                      border: `1px solid ${correction.ai_generated ? "#f59e0b" : "#d1d5db"}`,
+                      padding: "16px", 
+                      borderRadius: "6px"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
+                        <div>
+                          <strong style={{ fontSize: "14px" }}>
+                            {correction.ai_generated ? "🤖 AI Suggestion" : "📋 Rule-Based"} - {correction.type}
+                          </strong>
+                          <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
+                            {correction.category} • {correction.risk_level} • Confidence: {Math.round(correction.confidence * 100)}%
+                          </div>
+                        </div>
+                        <div style={{ 
+                          background: correction.priority_level === "HIGH" ? "#fef2f2" : 
+                                    correction.priority_level === "MEDIUM" ? "#fffbeb" : "#f0fdf4",
+                          color: correction.priority_level === "HIGH" ? "#dc2626" : 
+                                correction.priority_level === "MEDIUM" ? "#d97706" : "#059669",
+                          padding: "4px 8px", 
+                          borderRadius: "4px", 
+                          fontSize: "11px", 
+                          fontWeight: "600"
+                        }}>
+                          {correction.priority_level}
+                        </div>
+                      </div>
+                      
+                      <div style={{ marginBottom: "8px" }}>
+                        <strong style={{ fontSize: "13px" }}>Suggestion:</strong>
+                        <p style={{ margin: "4px 0 0 0", fontSize: "13px" }}>
+                          {correction.correction_suggestion}
+                        </p>
+                      </div>
+                      
+                      {correction.detailed_explanation && (
+                        <div style={{ marginBottom: "8px" }}>
+                          <strong style={{ fontSize: "13px" }}>Legal Reasoning:</strong>
+                          <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#6b7280" }}>
+                            {correction.detailed_explanation}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {correction.suggested_clause && (
+                        <div style={{ marginBottom: "8px" }}>
+                          <strong style={{ fontSize: "13px" }}>Suggested Clause:</strong>
+                          <div style={{ 
+                            background: "#f8fafc", 
+                            padding: "8px", 
+                            borderRadius: "4px", 
+                            fontSize: "12px",
+                            fontFamily: "monospace",
+                            border: "1px solid #e2e8f0",
+                            marginTop: "4px"
+                          }}>
+                            {correction.suggested_clause}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {correction.implementation_notes && (
+                        <div>
+                          <strong style={{ fontSize: "13px" }}>Implementation:</strong>
+                          <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#6b7280" }}>
+                            {correction.implementation_notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>
+              <button 
+                onClick={smartGenerateCorrectedDocument} 
+                className="button-primary"
+                disabled={isSmartGenerating}
+                style={{
+                  opacity: isSmartGenerating ? 0.7 : 1,
+                  cursor: isSmartGenerating ? "not-allowed" : "pointer"
+                }}
+              >
+                {isSmartGenerating ? "⏳ Generating..." : "📝 Generate Corrected Document"}
+              </button>
+              
+              {smartCorrectedDocument && (
+                <button 
+                  onClick={downloadSmartCorrectedDocument} 
+                  className="button-secondary"
+                >
+                  💾 Download Corrected Document
+                </button>
+              )}
+            </div>
+
+            {/* Corrected Document Results */}
+            {smartCorrectedDocument && (
+              <div style={{ marginTop: "20px" }}>
+                <h4 style={{ margin: "0 0 12px 0", fontSize: "16px", fontWeight: "600" }}>
+                  ✅ Corrected Document Generated
+                </h4>
+                <div style={{ 
+                  background: "#f0fdf4", 
+                  padding: "16px", 
+                  borderRadius: "6px",
+                  border: "1px solid #bbf7d0"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <strong style={{ fontSize: "14px", color: "#166534" }}>
+                        Document Successfully Corrected
+                      </strong>
+                      <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
+                        Changes Applied: {smartCorrectedDocument.changes_applied} • 
+                        AI Corrections: {smartCorrectedDocument.ai_corrections_count} • 
+                        Region: {smartCorrectedDocument.region}
+                      </div>
+                    </div>
+                    <div style={{ 
+                      background: "#dcfce7", 
+                      color: "#166534", 
+                      padding: "6px 12px", 
+                      borderRadius: "4px", 
+                      fontSize: "12px", 
+                      fontWeight: "600"
+                    }}>
+                      Claude Enhanced
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Simplified Compliance (Claude + LandingAI ADE + Pathway) */}
         <div className="section-card">

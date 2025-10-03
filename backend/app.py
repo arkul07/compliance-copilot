@@ -314,6 +314,93 @@ def get_anonymization_info():
         "description": "Data anonymization protects sensitive information while preserving compliance analysis functionality"
     }
 
+# ---------- Enhanced Smart Document Correction ----------
+
+@app.post("/smart_analyze_document")
+async def smart_analyze_document_with_claude(
+    region: str = Query("EU", pattern="^(EU|US|IN|UK)$"),
+    contract_path: Optional[str] = None,
+):
+    """Enhanced document analysis with Claude AI-powered corrections"""
+    if contract_path:
+        cpath = Path(contract_path)
+        if not cpath.exists():
+            raise HTTPException(status_code=400, detail="contract_path not found")
+    else:
+        cpath = _latest_contract()
+        if not cpath:
+            raise HTTPException(status_code=400, detail="no contracts uploaded")
+    
+    try:
+        # Run enhanced analysis with Claude corrections
+        analysis_result = smart_corrector.analyze_document_for_corrections(str(cpath), region)
+        
+        # Generate smart corrections summary using Claude
+        smart_summary = smart_corrector.generate_smart_corrections_summary(analysis_result)
+        
+        # Combine results
+        enhanced_result = {
+            **analysis_result,
+            "smart_summary": smart_summary,
+            "claude_enhanced": True,
+            "correction_ai_source": "Claude AI"
+        }
+        
+        return enhanced_result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Smart document analysis failed: {str(e)}")
+
+@app.post("/smart_generate_corrected_document")
+async def smart_generate_corrected_document_with_claude(
+    analysis_data: dict,
+    region: str = Query("EU", pattern="^(EU|US|IN|UK)$")
+):
+    """Generate corrected document with Claude AI-powered suggestions"""
+    try:
+        # Generate corrected document with AI enhancements
+        corrected_document = smart_corrector.generate_corrected_document(analysis_data)
+        
+        # Add smart summary if not already present
+        if "smart_summary" not in corrected_document:
+            smart_summary = smart_corrector.generate_smart_corrections_summary(analysis_data)
+            corrected_document["smart_summary"] = smart_summary
+        
+        # Add Claude enhancement metadata
+        corrected_document["claude_enhanced"] = True
+        corrected_document["ai_corrections_count"] = len([
+            c for c in corrected_document.get("corrections", []) 
+            if c.get("ai_generated", False)
+        ])
+        
+        return corrected_document
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Smart document generation failed: {str(e)}")
+
+@app.get("/smart_correction_info")
+def get_smart_correction_info():
+    """Get information about smart correction capabilities"""
+    return {
+        "ai_enhanced": True,
+        "claude_integration": True,
+        "correction_types": [
+            "compliance_flag_correction",
+            "risk_correlation_correction", 
+            "claude_ai_correction",
+            "claude_ai_correlation_correction"
+        ],
+        "features": [
+            "AI-powered correction suggestions",
+            "Legal reasoning and explanations",
+            "Implementation guidance",
+            "Priority-based recommendations",
+            "Confidence scoring",
+            "Smart summary generation"
+        ],
+        "description": "Enhanced document correction using Claude AI for intelligent, context-aware suggestions"
+    }
+
 # ---------- Simplified Compliance (Claude + LandingAI ADE + Pathway) ----------
 
 @app.get("/simplified_analysis")

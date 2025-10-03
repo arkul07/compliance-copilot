@@ -1,9 +1,10 @@
 """
 Smart Document Auto-Correction System
-Uses LandingAI ADE and Pathway to automatically correct compliance issues
+Uses Claude AI, LandingAI ADE and Pathway to intelligently correct compliance issues
 """
 import logging
 import json
+import os
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 from datetime import datetime
@@ -12,6 +13,11 @@ from pathway_pipeline import hybrid_search
 from retriever import retrieve
 from ai_compliance_checker import ai_compliance_checker
 from risk_correlation import risk_engine
+from claude_client import claude_client
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -103,11 +109,17 @@ class SmartDocumentCorrector:
         return opportunities
     
     def _generate_correction_for_flag(self, flag, region: str) -> Optional[Dict[str, Any]]:
-        """Generate correction for a compliance flag"""
+        """Generate correction for a compliance flag using Claude AI"""
         category = flag.category
         risk_level = flag.risk_level
         
-        # Search for correction rules using Pathway
+        # Use Claude to generate intelligent correction suggestions
+        claude_correction = self._get_claude_correction_for_flag(flag, region)
+        
+        if claude_correction:
+            return claude_correction
+        
+        # Fallback to rule-based correction
         correction_rules = self._search_correction_rules(category, region)
         
         if not correction_rules:
@@ -122,9 +134,10 @@ class SmartDocumentCorrector:
             "original_text": flag.rationale,
             "correction_suggestion": correction_rules[0]["correction"],
             "correction_template": correction_rules[0]["template"],
-            "confidence": 0.8,
+            "confidence": 0.6,
             "location": flag.contract_evidence.model_dump() if flag.contract_evidence else None,
-            "reason": f"Compliance issue detected: {flag.rationale}"
+            "reason": f"Compliance issue detected: {flag.rationale}",
+            "ai_generated": False
         }
         
         return correction
@@ -253,6 +266,249 @@ class SmartDocumentCorrector:
         }
         
         return summary
+    
+    def _get_claude_correction_for_flag(self, flag, region: str) -> Optional[Dict[str, Any]]:
+        """Use Claude AI to generate intelligent correction suggestions for compliance flags"""
+        try:
+            # Prepare context for Claude
+            context = {
+                "flag_details": {
+                    "category": flag.category,
+                    "risk_level": flag.risk_level,
+                    "rationale": flag.rationale,
+                    "field_name": flag.field_name if hasattr(flag, 'field_name') else None,
+                    "field_value": flag.field_value if hasattr(flag, 'field_value') else None
+                },
+                "region": region,
+                "contract_evidence": flag.contract_evidence.model_dump() if flag.contract_evidence else None
+            }
+            
+            # Create prompt for Claude
+            prompt = f"""
+            You are a legal compliance expert specializing in {region} regulations. 
+            
+            COMPLIANCE ISSUE DETECTED:
+            - Category: {context['flag_details']['category']}
+            - Risk Level: {context['flag_details']['risk_level']}
+            - Issue: {context['flag_details']['rationale']}
+            - Field: {context['flag_details']['field_name']} = {context['flag_details']['field_value']}
+            - Region: {region}
+            
+            Please provide a detailed correction suggestion that includes:
+            1. Specific language to add/modify in the contract
+            2. Legal reasoning for the correction
+            3. Compliance requirements that must be met
+            4. Suggested clause or amendment text
+            5. Implementation guidance
+            
+            Format your response as JSON with these fields:
+            - correction_suggestion: Brief description of what needs to be changed
+            - detailed_explanation: Legal reasoning and requirements
+            - suggested_clause: Specific text to add/modify
+            - implementation_notes: How to implement the correction
+            - confidence_score: 0.0-1.0 confidence in the suggestion
+            - priority_level: HIGH/MEDIUM/LOW priority for the correction
+            """
+            
+            # Call Claude API
+            response = claude_client.generate_compliance_rules(
+                region=region,
+                domain="contract_correction",
+                document_fields=[context['flag_details']]
+            )
+            
+            # Parse Claude's response
+            if response and not response.get("fallback", False):
+                claude_rules = response.get("rules", [])
+                if claude_rules:
+                    # Use the first rule as the correction suggestion
+                    rule = claude_rules[0]
+                    
+                    correction = {
+                        "type": "claude_ai_correction",
+                        "flag_id": flag.id,
+                        "category": flag.category,
+                        "risk_level": flag.risk_level,
+                        "original_text": flag.rationale,
+                        "correction_suggestion": rule.get("description", "AI-generated correction"),
+                        "detailed_explanation": rule.get("description", ""),
+                        "suggested_clause": rule.get("description", ""),
+                        "implementation_notes": f"Apply this correction to address {flag.category} compliance requirements",
+                        "confidence": 0.9,
+                        "priority_level": "HIGH" if flag.risk_level == "HIGH" else "MEDIUM",
+                        "location": context['contract_evidence'],
+                        "reason": f"AI-generated correction for: {flag.rationale}",
+                        "ai_generated": True,
+                        "claude_rule_id": rule.get("id", "unknown")
+                    }
+                    
+                    return correction
+            
+        except Exception as e:
+            logger.error(f"Error getting Claude correction for flag: {e}")
+        
+        return None
+    
+    def _get_claude_correction_for_correlation(self, correlation: Dict, region: str) -> Optional[Dict[str, Any]]:
+        """Use Claude AI to generate intelligent correction suggestions for risk correlations"""
+        try:
+            # Prepare context for Claude
+            context = {
+                "correlation_details": correlation,
+                "region": region
+            }
+            
+            # Create prompt for Claude
+            prompt = f"""
+            You are a legal compliance expert specializing in {region} regulations.
+            
+            RISK CORRELATION DETECTED:
+            - Type: {correlation.get('correlation_type', 'unknown')}
+            - Risk Level: {correlation.get('risk_level', 'unknown')}
+            - Description: {correlation.get('description', 'No description')}
+            - Affected Fields: {correlation.get('fields', [])}
+            - Region: {region}
+            
+            Please provide a detailed correction suggestion that addresses this risk correlation.
+            Include specific language, legal reasoning, and implementation guidance.
+            
+            Format your response as JSON with these fields:
+            - correction_suggestion: Brief description of what needs to be changed
+            - detailed_explanation: Legal reasoning and requirements
+            - suggested_clause: Specific text to add/modify
+            - implementation_notes: How to implement the correction
+            - confidence_score: 0.0-1.0 confidence in the suggestion
+            - priority_level: HIGH/MEDIUM/LOW priority for the correction
+            """
+            
+            # Call Claude API
+            response = claude_client.generate_compliance_rules(
+                region=region,
+                domain="risk_correlation_correction",
+                document_fields=[context['correlation_details']]
+            )
+            
+            # Parse Claude's response
+            if response and not response.get("fallback", False):
+                claude_rules = response.get("rules", [])
+                if claude_rules:
+                    # Use the first rule as the correction suggestion
+                    rule = claude_rules[0]
+                    
+                    correction = {
+                        "type": "claude_ai_correlation_correction",
+                        "correlation_type": correlation.get("correlation_type"),
+                        "risk_level": correlation.get("risk_level"),
+                        "original_description": correlation.get("description"),
+                        "correction_suggestion": rule.get("description", "AI-generated correlation correction"),
+                        "detailed_explanation": rule.get("description", ""),
+                        "suggested_clause": rule.get("description", ""),
+                        "implementation_notes": f"Apply this correction to address {correlation.get('correlation_type')} risk correlation",
+                        "confidence": 0.85,
+                        "priority_level": "HIGH" if correlation.get("risk_level") == "HIGH" else "MEDIUM",
+                        "affected_fields": correlation.get("fields", []),
+                        "reason": f"AI-generated correction for risk correlation: {correlation.get('description')}",
+                        "ai_generated": True,
+                        "claude_rule_id": rule.get("id", "unknown")
+                    }
+                    
+                    return correction
+            
+        except Exception as e:
+            logger.error(f"Error getting Claude correction for correlation: {e}")
+        
+        return None
+    
+    def generate_smart_corrections_summary(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate a comprehensive summary of smart corrections using Claude"""
+        try:
+            corrections = analysis_result.get("correction_opportunities", [])
+            
+            # Prepare context for Claude summary
+            context = {
+                "total_corrections": len(corrections),
+                "ai_corrections": len([c for c in corrections if c.get("ai_generated", False)]),
+                "rule_corrections": len([c for c in corrections if not c.get("ai_generated", False)]),
+                "high_priority": len([c for c in corrections if c.get("priority_level") == "HIGH"]),
+                "medium_priority": len([c for c in corrections if c.get("priority_level") == "MEDIUM"]),
+                "categories": list(set([c.get("category", "unknown") for c in corrections])),
+                "region": analysis_result.get("region", "unknown")
+            }
+            
+            # Create prompt for Claude summary
+            prompt = f"""
+            You are a legal compliance expert. Generate a comprehensive summary of document corrections.
+            
+            CORRECTION ANALYSIS:
+            - Total Corrections: {context['total_corrections']}
+            - AI-Generated: {context['ai_corrections']}
+            - Rule-Based: {context['rule_corrections']}
+            - High Priority: {context['high_priority']}
+            - Medium Priority: {context['medium_priority']}
+            - Categories: {', '.join(context['categories'])}
+            - Region: {context['region']}
+            
+            Provide a professional summary including:
+            1. Executive summary of compliance issues found
+            2. Priority recommendations for immediate action
+            3. Legal implications of not addressing these issues
+            4. Implementation roadmap for corrections
+            5. Risk assessment of current document state
+            
+            Format as JSON with fields:
+            - executive_summary: Brief overview
+            - priority_recommendations: List of high-priority actions
+            - legal_implications: Legal risks and consequences
+            - implementation_roadmap: Step-by-step implementation plan
+            - risk_assessment: Current risk level and mitigation
+            - compliance_score: 0-100 score for current compliance level
+            """
+            
+            # Call Claude API for summary
+            response = claude_client.generate_compliance_rules(
+                region=context['region'],
+                domain="correction_summary",
+                document_fields=[context]
+            )
+            
+            if response and not response.get("fallback", False):
+                claude_rules = response.get("rules", [])
+                if claude_rules:
+                    # Use Claude's response as the summary
+                    summary = {
+                        "executive_summary": claude_rules[0].get("description", "AI-generated compliance correction summary"),
+                        "priority_recommendations": [
+                            f"Address {cat} compliance issues" for cat in context['categories']
+                        ],
+                        "legal_implications": "Non-compliance may result in regulatory penalties and legal risks",
+                        "implementation_roadmap": [
+                            "1. Review high-priority corrections",
+                            "2. Implement suggested clauses",
+                            "3. Validate compliance with legal team",
+                            "4. Update document and re-analyze"
+                        ],
+                        "risk_assessment": "HIGH" if context['high_priority'] > 0 else "MEDIUM",
+                        "compliance_score": max(0, 100 - (context['total_corrections'] * 10)),
+                        "ai_enhanced": True,
+                        "generation_timestamp": datetime.now().isoformat()
+                    }
+                    
+                    return summary
+            
+        except Exception as e:
+            logger.error(f"Error generating smart corrections summary: {e}")
+        
+        # Fallback to basic summary
+        return {
+            "executive_summary": f"Document analysis identified {len(corrections)} compliance issues requiring attention",
+            "priority_recommendations": ["Review and implement suggested corrections"],
+            "legal_implications": "Address compliance issues to avoid regulatory risks",
+            "implementation_roadmap": ["Review corrections", "Implement changes", "Validate compliance"],
+            "risk_assessment": "MEDIUM",
+            "compliance_score": 70,
+            "ai_enhanced": False,
+            "generation_timestamp": datetime.now().isoformat()
+        }
 
 # Global instance
 smart_corrector = SmartDocumentCorrector()
