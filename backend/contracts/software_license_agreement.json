@@ -1,0 +1,50 @@
+{
+  "contract_id": "SLA-2024-001",
+  "contract_type": "Software License Agreement",
+  "parties": {
+    "licensor": "TechCorp Solutions Ltd",
+    "licensee": "Global Enterprises Inc"
+  },
+  "effective_date": "2024-01-15",
+  "termination_date": "2025-01-14",
+  "jurisdiction": "Delaware, United States",
+  "governing_law": "Delaware State Law",
+  "key_terms": {
+    "license_type": "Enterprise License",
+    "users": 1000,
+    "annual_fee": 250000,
+    "payment_terms": "Quarterly in advance",
+    "termination_notice": "90 days written notice"
+  },
+  "compliance_requirements": {
+    "data_protection": {
+      "gdpr_compliance": true,
+      "data_processing_agreement": true,
+      "data_retention_period": "7 years",
+      "cross_border_transfers": "Standard Contractual Clauses required"
+    },
+    "security_obligations": {
+      "encryption_required": true,
+      "access_controls": "Multi-factor authentication",
+      "audit_logging": true,
+      "incident_reporting": "24 hours"
+    },
+    "intellectual_property": {
+      "licensor_retains_ownership": true,
+      "licensee_modifications": "Permitted for internal use only",
+      "patent_infringement": "Mutual indemnification"
+    }
+  },
+  "risk_factors": {
+    "data_breach_liability": "Limited to annual license fee",
+    "force_majeure": "Pandemic and cyber attacks included",
+    "regulatory_changes": "Compliance costs shared 50/50",
+    "termination_penalties": "6 months license fee"
+  },
+  "compliance_flags": [
+    "GDPR data processing agreement required",
+    "Cross-border data transfer restrictions apply",
+    "Cybersecurity incident reporting obligations",
+    "Intellectual property indemnification clauses"
+  ]
+}

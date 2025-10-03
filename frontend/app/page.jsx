@@ -5,13 +5,22 @@ import { useEffect, useMemo, useState } from "react";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8001";
 
 export default function Home() {
-  // Add CSS animation for spinner
+  // Add CSS animation for spinner and search highlighting
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
+      }
+      
+      mark {
+        background-color: #fef3c7 !important;
+        padding: 1px 3px !important;
+        border-radius: 3px !important;
+        font-weight: 600 !important;
+        color: #92400e !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
       }
     `;
     document.head.appendChild(style);
@@ -26,14 +35,26 @@ export default function Home() {
   const [systemStatus, setSystemStatus] = useState(null);
   const [tables, setTables] = useState([]);
   
+  // Pathway features state
+  const [pathwaySearchQuery, setPathwaySearchQuery] = useState("");
+  const [pathwayResults, setPathwayResults] = useState([]);
+  const [pathwayStats, setPathwayStats] = useState(null);
+  const [liveActivity, setLiveActivity] = useState([]);
+  const [newDocumentContent, setNewDocumentContent] = useState("");
+  const [newDocumentName, setNewDocumentName] = useState("");
+  const [newDocumentType, setNewDocumentType] = useState("rule");
+  
   // Modal states
   const [showRiskInfoModal, setShowRiskInfoModal] = useState(false);
   const [showTableInfoModal, setShowTableInfoModal] = useState(false);
+  const [showPathwayInfoModal, setShowPathwayInfoModal] = useState(false);
   
   // Loading states
   const [isAnalyzingRisk, setIsAnalyzingRisk] = useState(false);
   const [isExtractingTables, setIsExtractingTables] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [isSearchingPathway, setIsSearchingPathway] = useState(false);
+  const [isLoadingPathwayStats, setIsLoadingPathwayStats] = useState(false);
 
   const [ruleFile, setRuleFile] = useState(null);
   const [ruleText, setRuleText] = useState("");
@@ -275,6 +296,105 @@ export default function Home() {
       setIsCheckingStatus(false);
     }
   }
+
+  // Pathway Functions
+  async function searchPathway() {
+    if (!pathwaySearchQuery.trim()) {
+      alert("Please enter a search query");
+      return;
+    }
+    
+    setIsSearchingPathway(true);
+    try {
+      const r = await fetch(`${API_BASE}/pathway_search?query=${encodeURIComponent(pathwaySearchQuery)}&top_k=5`);
+      if (!r.ok) {
+        const errorData = await r.json().catch(() => ({}));
+        alert(`❌ Pathway search failed:\n${r.status} - ${errorData.detail || r.statusText}`);
+        return;
+      }
+      const data = await r.json();
+      setPathwayResults(data.results || []);
+      alert(`🔍 Pathway Search Complete!\n\nFound ${data.results?.length || 0} relevant documents.`);
+    } catch (error) {
+      alert(`❌ Pathway search error: ${error.message}`);
+    } finally {
+      setIsSearchingPathway(false);
+    }
+  }
+
+  async function getPathwayStats() {
+    setIsLoadingPathwayStats(true);
+    try {
+      const r = await fetch(`${API_BASE}/pathway_stats`);
+      if (!r.ok) return;
+      const data = await r.json();
+      setPathwayStats(data);
+    } catch (error) {
+      console.error("Pathway stats check failed:", error);
+    } finally {
+      setIsLoadingPathwayStats(false);
+    }
+  }
+
+  // Real-time activity functions
+  async function getLiveActivity() {
+    try {
+      const r = await fetch(`${API_BASE}/pathway_live_activity`);
+      if (!r.ok) return;
+      const data = await r.json();
+      setLiveActivity(data.activity || []);
+    } catch (error) {
+      console.error("Live activity check failed:", error);
+    }
+  }
+
+  async function addNewDocument() {
+    if (!newDocumentContent.trim() || !newDocumentName.trim()) {
+      alert("Please provide both content and filename");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('content', newDocumentContent);
+      formData.append('filename', newDocumentName);
+      formData.append('doc_type', newDocumentType);
+
+      const r = await fetch(`${API_BASE}/pathway_add_document`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!r.ok) {
+        const errorData = await r.json().catch(() => ({}));
+        alert(`❌ Failed to add document:\n${r.status} - ${errorData.detail || r.statusText}`);
+        return;
+      }
+
+      const data = await r.json();
+      alert(`✅ Document added successfully!\n\n${data.message}`);
+      
+      // Clear form
+      setNewDocumentContent("");
+      setNewDocumentName("");
+      
+      // Refresh stats and activity
+      getPathwayStats();
+      getLiveActivity();
+    } catch (error) {
+      alert(`❌ Error adding document: ${error.message}`);
+    }
+  }
+
+  // Auto-refresh for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      getPathwayStats();
+      getLiveActivity();
+    }, 5000); // Update every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const box = { border: "1px solid #e5e7eb", padding: 16, borderRadius: 12, marginBottom: 16, background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" };
   const buttonStyle = { 
@@ -601,8 +721,279 @@ export default function Home() {
           </section>
         )}
 
-      {/* System Status Display */}
-      {systemStatus && (
+        {/* Pathway Search Section */}
+        <section style={box}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <h3>🔍 Pathway Live Search</h3>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div style={{ 
+                fontSize: "12px", 
+                color: "#6b7280", 
+                background: "#f0f9ff", 
+                padding: "6px 12px", 
+                borderRadius: "6px",
+                border: "1px solid #bae6fd"
+              }}>
+                💡 Real-time document indexing with hybrid search
+              </div>
+              <button 
+                onClick={() => setShowPathwayInfoModal(true)}
+                style={{
+                  background: "#7c3aed",
+                  color: "white",
+                  border: "none",
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "500"
+                }}
+              >
+                ℹ️ Info
+              </button>
+            </div>
+          </div>
+          
+          {/* Search Input */}
+          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+            <input
+              type="text"
+              placeholder="Search documents (e.g., 'GDPR privacy', 'labor law', 'tax withholding')"
+              value={pathwaySearchQuery}
+              onChange={(e) => setPathwaySearchQuery(e.target.value)}
+              style={{
+                flex: 1,
+                padding: "8px 12px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "14px"
+              }}
+              onKeyPress={(e) => e.key === 'Enter' && searchPathway()}
+            />
+            <button 
+              onClick={searchPathway}
+              disabled={isSearchingPathway}
+              style={{
+                ...buttonStyle, 
+                background: isSearchingPathway ? "#9ca3af" : "#7c3aed", 
+                padding: "8px 16px",
+                opacity: isSearchingPathway ? 0.7 : 1,
+                cursor: isSearchingPathway ? "not-allowed" : "pointer"
+              }}
+            >
+              {isSearchingPathway ? "⏳ Searching..." : "🔍 Search"}
+            </button>
+          </div>
+
+          {/* Pathway Stats */}
+          <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+            <button 
+              onClick={getPathwayStats}
+              disabled={isLoadingPathwayStats}
+              style={{
+                ...buttonStyle, 
+                background: isLoadingPathwayStats ? "#9ca3af" : "#6b7280", 
+                padding: "6px 12px", 
+                fontSize: "12px",
+                opacity: isLoadingPathwayStats ? 0.7 : 1,
+                cursor: isLoadingPathwayStats ? "not-allowed" : "pointer"
+              }}
+            >
+              {isLoadingPathwayStats ? "⏳ Loading..." : "📊 Get Stats"}
+            </button>
+          </div>
+
+          {/* Real-time Activity Feed */}
+          {liveActivity.length > 0 && (
+            <div style={{ 
+              background: "#f0f9ff", 
+              border: "1px solid #bae6fd", 
+              borderRadius: "8px", 
+              padding: "12px", 
+              marginBottom: "16px" 
+            }}>
+              <h4 style={{ margin: "0 0 8px 0", fontSize: "14px", color: "#1e40af" }}>⚡ Live Activity</h4>
+              <div style={{ maxHeight: "200px", overflow: "auto" }}>
+                {liveActivity.map((activity, index) => (
+                  <div key={index} style={{ 
+                    display: "flex", 
+                    justifyContent: "space-between", 
+                    alignItems: "center",
+                    padding: "4px 0",
+                    borderBottom: index < liveActivity.length - 1 ? "1px solid #e5e7eb" : "none"
+                  }}>
+                    <div style={{ fontSize: "12px" }}>
+                      <span style={{ fontWeight: "600" }}>{activity.file}</span>
+                      <span style={{ color: "#6b7280", marginLeft: "8px" }}>
+                        ({activity.type})
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "11px", color: "#9ca3af" }}>
+                      {activity.time_ago < 60 ? `${activity.time_ago}s ago` : 
+                       activity.time_ago < 3600 ? `${Math.floor(activity.time_ago/60)}m ago` : 
+                       `${Math.floor(activity.time_ago/3600)}h ago`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Add New Document */}
+          <div style={{ 
+            background: "#f8fafc", 
+            border: "1px solid #e2e8f0", 
+            borderRadius: "8px", 
+            padding: "16px", 
+            marginBottom: "16px" 
+          }}>
+            <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#374151" }}>📝 Add New Document</h4>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+              <input
+                type="text"
+                placeholder="Filename (e.g., new_rule.md)"
+                value={newDocumentName}
+                onChange={(e) => setNewDocumentName(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "6px 8px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "4px",
+                  fontSize: "12px"
+                }}
+              />
+              <select
+                value={newDocumentType}
+                onChange={(e) => setNewDocumentType(e.target.value)}
+                style={{
+                  padding: "6px 8px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "4px",
+                  fontSize: "12px"
+                }}
+              >
+                <option value="rule">Rule</option>
+                <option value="contract">Contract</option>
+              </select>
+            </div>
+            <textarea
+              placeholder="Enter document content..."
+              value={newDocumentContent}
+              onChange={(e) => setNewDocumentContent(e.target.value)}
+              style={{
+                width: "100%",
+                height: "100px",
+                padding: "8px",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+                fontSize: "12px",
+                resize: "vertical",
+                marginBottom: "8px"
+              }}
+            />
+            <button 
+              onClick={addNewDocument}
+              style={{
+                ...buttonStyle, 
+                background: "#10b981", 
+                padding: "6px 12px", 
+                fontSize: "12px"
+              }}
+            >
+              ➕ Add Document
+            </button>
+          </div>
+
+          {/* Pathway Stats Display */}
+          {pathwayStats && (
+            <div style={{ 
+              background: "#f8fafc", 
+              border: "1px solid #e2e8f0", 
+              borderRadius: "8px", 
+              padding: "12px", 
+              marginBottom: "16px" 
+            }}>
+              <h4 style={{ margin: "0 0 8px 0", fontSize: "14px", color: "#374151" }}>📊 Live Statistics</h4>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "8px", fontSize: "12px" }}>
+                <div>Documents: {pathwayStats.document_count || 0}</div>
+                <div>Recent Changes: {pathwayStats.recent_changes || 0}</div>
+                <div>Status: {pathwayStats.live_monitoring ? "🟢 Live" : "🔴 Static"}</div>
+                <div>Last Update: {pathwayStats.last_indexed || "Unknown"}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Search Results Display */}
+          {pathwayResults.length > 0 && (
+            <div style={{ maxHeight: 400, overflow: "auto" }}>
+              <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#374151" }}>🔍 Search Results ({pathwayResults.length})</h4>
+              {pathwayResults.map((result, index) => (
+                <div key={index} style={{ 
+                  padding: "12px", 
+                  margin: "8px 0", 
+                  background: "#ffffff",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}>
+                  <div style={{ 
+                    display: "flex", 
+                    justifyContent: "space-between", 
+                    alignItems: "flex-start",
+                    marginBottom: "8px"
+                  }}>
+                    <div style={{ 
+                      fontSize: "12px", 
+                      color: "#6b7280",
+                      background: "#f3f4f6",
+                      padding: "2px 6px",
+                      borderRadius: "4px"
+                    }}>
+                      Score: {result.score ? result.score.toFixed(3) : "N/A"}
+                    </div>
+                    <div style={{ 
+                      fontSize: "11px", 
+                      color: "#9ca3af"
+                    }}>
+                      Result {index + 1}
+                    </div>
+                  </div>
+                  
+                  <div style={{ 
+                    fontSize: "13px", 
+                    color: "#374151", 
+                    lineHeight: "1.4",
+                    maxHeight: "150px",
+                    overflow: "hidden"
+                  }}>
+                    {result.text ? (
+                      <div 
+                        dangerouslySetInnerHTML={{ 
+                          __html: result.text
+                        }}
+                      />
+                    ) : "No text content"}
+                  </div>
+                  
+                  {result.metadata && (
+                    <div style={{ 
+                      marginTop: "8px",
+                      fontSize: "11px", 
+                      color: "#6b7280",
+                      borderTop: "1px solid #e5e7eb",
+                      paddingTop: "6px"
+                    }}>
+                      <strong>Source:</strong> {result.metadata.path || "Unknown"}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* System Status Display */}
+        {systemStatus && (
         <section style={box}>
           <h3>🔧 System Status</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1047,6 +1438,74 @@ export default function Home() {
               onClick={() => setShowTableInfoModal(false)}
               style={{
                 background: "#dc2626",
+                color: "white",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                marginTop: "16px"
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pathway Info Modal */}
+      {showPathwayInfoModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            maxWidth: "600px",
+            width: "90%",
+            maxHeight: "80vh",
+            overflow: "auto"
+          }}>
+            <h3 style={{ marginTop: 0, color: "#7c3aed" }}>🔍 Pathway Live Search</h3>
+            <p><strong>What it does:</strong> Provides real-time document indexing and hybrid search across your compliance rules and contracts using Pathway's live vector store.</p>
+            
+            <h4 style={{ color: "#374151", marginTop: "20px" }}>Key Features:</h4>
+            <ul style={{ paddingLeft: "20px" }}>
+              <li><strong>Real-time Indexing:</strong> Automatically indexes documents as they're added or modified</li>
+              <li><strong>Hybrid Search:</strong> Combines vector similarity with BM25 keyword matching for better results</li>
+              <li><strong>Live Updates:</strong> Search results update instantly when documents change</li>
+              <li><strong>Semantic Understanding:</strong> Finds relevant content even with different wording</li>
+            </ul>
+
+            <h4 style={{ color: "#374151", marginTop: "20px" }}>How It Works:</h4>
+            <ul style={{ paddingLeft: "20px" }}>
+              <li><strong>Document Processing:</strong> Pathway monitors the rules and contracts directories</li>
+              <li><strong>Vector Embeddings:</strong> Uses sentence transformers to create semantic representations</li>
+              <li><strong>Hybrid Index:</strong> Maintains both vector and keyword indexes for comprehensive search</li>
+              <li><strong>Real-time Queries:</strong> Search across all indexed content with relevance scoring</li>
+            </ul>
+
+            <h4 style={{ color: "#374151", marginTop: "20px" }}>Business Value:</h4>
+            <ul style={{ paddingLeft: "20px" }}>
+              <li><strong>Instant Knowledge:</strong> Find relevant compliance rules and contract clauses instantly</li>
+              <li><strong>Comprehensive Coverage:</strong> Search across all documents simultaneously</li>
+              <li><strong>Contextual Results:</strong> Get semantically relevant results, not just keyword matches</li>
+              <li><strong>Always Up-to-date:</strong> Results reflect the latest document changes automatically</li>
+            </ul>
+
+            <button 
+              onClick={() => setShowPathwayInfoModal(false)}
+              style={{
+                background: "#7c3aed",
                 color: "white",
                 border: "none",
                 padding: "8px 16px",

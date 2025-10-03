@@ -10,3 +10,6 @@ pypdf>=4,<5
 python-multipart>=0.0.9,<1
 pandas>=1.5,<3
 sentence-transformers>=2.2,<3
+pdf2image>=1.17,<2
+unstructured>=0.18,<1
+aiofiles>=0.7.0,<1.0.0

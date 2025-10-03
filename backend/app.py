@@ -1,5 +1,5 @@
 from __future__ import annotations
-from fastapi import FastAPI, UploadFile, File, HTTPException, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Form
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from pathlib import Path
@@ -238,3 +238,133 @@ def get_system_status():
         "api_port": Config.API_PORT,
         "frontend_url": Config.FRONTEND_URL
     }
+
+@app.get("/pathway_search")
+def search_pathway(
+    query: str = Query(..., description="Search query"),
+    top_k: int = Query(5, description="Number of results to return")
+):
+    """Search documents using Pathway's hybrid search"""
+    try:
+        from .pathway_pipeline import hybrid_search
+        results = hybrid_search(query, top_k)
+        
+        # Format results for frontend
+        formatted_results = []
+        for text, score in results:
+            formatted_results.append({
+                "text": text,
+                "score": score,
+                "metadata": {
+                    "path": "pathway_search",
+                    "source": "hybrid_search"
+                }
+            })
+        
+        return {
+            "query": query,
+            "results": formatted_results,
+            "count": len(formatted_results)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pathway search failed: {str(e)}")
+
+@app.get("/pathway_stats")
+def get_pathway_stats():
+    """Get Pathway server statistics"""
+    try:
+        from .pathway_pipeline import get_live_document_count, get_recent_changes
+        import time
+        
+        # Get real-time document count
+        doc_count = get_live_document_count()
+        
+        # Get recent changes
+        recent_changes = get_recent_changes()
+        
+        return {
+            "server_running": True,
+            "document_count": doc_count,
+            "recent_changes": len(recent_changes),
+            "last_indexed": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "port": 8765,
+            "status": "active",
+            "live_monitoring": True
+        }
+    except Exception as e:
+        return {
+            "server_running": False,
+            "document_count": 0,
+            "last_indexed": "Unknown",
+            "port": 8765,
+            "status": f"error: {str(e)}",
+            "live_monitoring": False
+        }
+
+@app.get("/pathway_live_activity")
+def get_live_activity():
+    """Get real-time activity feed"""
+    try:
+        from .pathway_pipeline import get_recent_changes
+        import time
+        
+        recent_changes = get_recent_changes()
+        
+        # Format for frontend
+        activity = []
+        for change in recent_changes[:10]:  # Last 10 changes
+            activity.append({
+                "file": change["path"].split("/")[-1],
+                "type": change["type"],
+                "time_ago": int(time.time() - change["modified"]),
+                "timestamp": change["modified"]
+            })
+        
+        return {
+            "activity": activity,
+            "total_changes": len(recent_changes),
+            "last_update": time.time()
+        }
+    except Exception as e:
+        return {
+            "activity": [],
+            "total_changes": 0,
+            "error": str(e)
+        }
+
+@app.post("/pathway_add_document")
+def add_document_live(
+    content: str = Form(...),
+    filename: str = Form(...),
+    doc_type: str = Form("rule")
+):
+    """Add a new document to the live index"""
+    try:
+        from .pathway_pipeline import add_rule_text, add_contract_file
+        from pathlib import Path
+        import time
+        
+        if doc_type == "rule":
+            # Add to rules
+            add_rule_text(content)
+            # Save to file
+            rules_dir = Path("backend/rules")
+            rules_dir.mkdir(exist_ok=True)
+            file_path = rules_dir / filename
+            file_path.write_text(content)
+        else:
+            # Add to contracts
+            contracts_dir = Path("backend/contracts")
+            contracts_dir.mkdir(exist_ok=True)
+            file_path = contracts_dir / filename
+            file_path.write_text(content)
+            add_contract_file(str(file_path))
+        
+        return {
+            "status": "success",
+            "message": f"Document '{filename}' added successfully",
+            "timestamp": time.time(),
+            "type": doc_type
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to add document: {str(e)}")

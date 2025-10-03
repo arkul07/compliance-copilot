@@ -1,0 +1,64 @@
+{
+  "contract_id": "DPA-2024-003",
+  "contract_type": "Data Processing Agreement",
+  "parties": {
+    "controller": "Healthcare Solutions Ltd",
+    "processor": "CloudTech Services Inc"
+  },
+  "effective_date": "2024-03-01",
+  "jurisdiction": "European Union",
+  "governing_law": "GDPR and EU Law",
+  "data_categories": {
+    "personal_data": [
+      "Patient medical records",
+      "Healthcare provider information",
+      "Insurance details",
+      "Treatment history"
+    ],
+    "special_categories": [
+      "Health data",
+      "Biometric data",
+      "Genetic data"
+    ]
+  },
+  "compliance_requirements": {
+    "gdpr_obligations": {
+      "lawful_basis": "Article 6(1)(b) - Contract performance",
+      "special_category_basis": "Article 9(2)(h) - Healthcare purposes",
+      "data_minimization": "Only necessary data processed",
+      "purpose_limitation": "Healthcare service delivery only"
+    },
+    "technical_measures": {
+      "encryption": "AES-256 encryption at rest and in transit",
+      "access_controls": "Role-based access with MFA",
+      "audit_logging": "Comprehensive activity logging",
+      "backup_security": "Encrypted backups with separate keys"
+    },
+    "organizational_measures": {
+      "staff_training": "Annual GDPR training required",
+      "confidentiality_agreements": "All staff must sign NDAs",
+      "data_protection_officer": "DPO appointed and accessible",
+      "incident_response": "72-hour breach notification"
+    }
+  },
+  "data_subject_rights": {
+    "access_requests": "30 days response time",
+    "rectification": "Immediate correction of inaccurate data",
+    "erasure": "Right to be forgotten (with exceptions)",
+    "portability": "Machine-readable data export",
+    "objection": "Right to object to processing"
+  },
+  "cross_border_transfers": {
+    "adequacy_decision": "UK adequacy decision applies",
+    "standard_contractual_clauses": "EU SCCs implemented",
+    "additional_safeguards": "Technical and organizational measures",
+    "transfer_impact_assessments": "Annual TIA reviews"
+  },
+  "compliance_flags": [
+    "GDPR Article 28 processor obligations",
+    "Special category data processing restrictions",
+    "Cross-border transfer compliance required",
+    "Data subject rights implementation",
+    "72-hour breach notification obligations"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "contract_id": "EMP-2024-002",
+  "contract_type": "Employment Agreement",
+  "parties": {
+    "employer": "Innovation Labs Ltd",
+    "employee": "Sarah Johnson"
+  },
+  "effective_date": "2024-02-01",
+  "employment_type": "Full-time",
+  "jurisdiction": "England and Wales",
+  "governing_law": "UK Employment Law",
+  "key_terms": {
+    "position": "Senior Software Engineer",
+    "salary": 75000,
+    "currency": "GBP",
+    "probation_period": "6 months",
+    "notice_period": "3 months",
+    "holiday_entitlement": "25 days plus bank holidays"
+  },
+  "compliance_requirements": {
+    "working_time_regulations": {
+      "maximum_hours": "48 hours per week",
+      "overtime_policy": "Time off in lieu",
+      "break_requirements": "20 minutes for 6+ hours work",
+      "rest_periods": "11 hours between shifts"
+    },
+    "data_protection": {
+      "employee_data_processing": "Legitimate interest basis",
+      "monitoring_policies": "Clear notice required",
+      "subject_access_rights": "30 days response time",
+      "data_retention": "7 years for payroll records"
+    },
+    "health_safety": {
+      "risk_assessments": "Annual workplace assessments",
+      "training_requirements": "Health and safety induction",
+      "reporting_obligations": "Accident reporting within 24 hours",
+      "equipment_provided": "Ergonomic workstation setup"
+    }
+  },
+  "confidentiality_obligations": {
+    "non_disclosure": "Unlimited duration",
+    "intellectual_property": "All work product belongs to employer",
+    "non_compete": "6 months post-employment",
+    "client_restrictions": "Cannot solicit clients for 12 months"
+  },
+  "compliance_flags": [
+    "UK Working Time Regulations apply",
+    "GDPR compliance for employee data",
+    "Health and Safety at Work Act obligations",
+    "Equality Act 2010 protected characteristics"
+  ]
+}
