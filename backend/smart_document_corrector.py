@@ -509,6 +509,197 @@ class SmartDocumentCorrector:
             "ai_enhanced": False,
             "generation_timestamp": datetime.now().isoformat()
         }
+    
+    def _generate_corrections_from_simplified_analysis(self, simplified_result: Dict[str, Any], region: str) -> List[Dict[str, Any]]:
+        """Generate corrections based on simplified analysis results (Claude-generated flags)"""
+        corrections = []
+        
+        # Get compliance flags from simplified analysis
+        compliance_flags = simplified_result.get("compliance_flags", [])
+        risk_correlations = simplified_result.get("risk_correlations", [])
+        
+        # Generate corrections for each compliance flag
+        for flag in compliance_flags:
+            correction = self._generate_correction_from_simplified_flag(flag, region)
+            if correction:
+                corrections.append(correction)
+        
+        # Generate corrections for each risk correlation
+        for correlation in risk_correlations:
+            correction = self._generate_correction_from_simplified_correlation(correlation, region)
+            if correction:
+                corrections.append(correction)
+        
+        return corrections
+    
+    def _generate_correction_from_simplified_flag(self, flag: Dict[str, Any], region: str) -> Optional[Dict[str, Any]]:
+        """Generate correction for a simplified analysis flag"""
+        try:
+            # Use Claude to generate intelligent correction suggestions
+            claude_correction = self._get_claude_correction_for_simplified_flag(flag, region)
+            
+            if claude_correction:
+                return claude_correction
+            
+            # Fallback to rule-based correction
+            category = flag.get("category", "unknown")
+            risk_level = flag.get("risk_level", "MEDIUM")
+            
+            correction = {
+                "type": "simplified_flag_correction",
+                "flag_id": flag.get("id", "unknown"),
+                "category": category,
+                "risk_level": risk_level,
+                "original_text": flag.get("rationale", ""),
+                "correction_suggestion": f"Address {category} compliance issue",
+                "correction_template": f"This clause shall comply with {category} requirements in {region}.",
+                "confidence": 0.7,
+                "location": flag.get("contract_evidence", {}),
+                "reason": f"Simplified analysis flag: {flag.get('rationale', '')}",
+                "ai_generated": False,
+                "source": "simplified_analysis"
+            }
+            
+            return correction
+            
+        except Exception as e:
+            logger.error(f"Error generating correction for simplified flag: {e}")
+            return None
+    
+    def _generate_correction_from_simplified_correlation(self, correlation: Dict[str, Any], region: str) -> Optional[Dict[str, Any]]:
+        """Generate correction for a simplified analysis correlation"""
+        try:
+            # Use Claude to generate intelligent correction suggestions
+            claude_correction = self._get_claude_correction_for_simplified_correlation(correlation, region)
+            
+            if claude_correction:
+                return claude_correction
+            
+            # Fallback to rule-based correction
+            correlation_type = correlation.get("correlation_type", "unknown")
+            risk_level = correlation.get("risk_level", "MEDIUM")
+            
+            correction = {
+                "type": "simplified_correlation_correction",
+                "correlation_type": correlation_type,
+                "risk_level": risk_level,
+                "original_description": correlation.get("description", ""),
+                "correction_suggestion": f"Address {correlation_type} risk correlation",
+                "correction_template": f"This clause shall address {correlation_type} risks in {region}.",
+                "confidence": 0.6,
+                "affected_fields": correlation.get("fields", []),
+                "reason": f"Simplified analysis correlation: {correlation.get('description', '')}",
+                "ai_generated": False,
+                "source": "simplified_analysis"
+            }
+            
+            return correction
+            
+        except Exception as e:
+            logger.error(f"Error generating correction for simplified correlation: {e}")
+            return None
+    
+    def _get_claude_correction_for_simplified_flag(self, flag: Dict[str, Any], region: str) -> Optional[Dict[str, Any]]:
+        """Use Claude AI to generate intelligent correction suggestions for simplified analysis flags"""
+        try:
+            # Prepare context for Claude
+            context = {
+                "flag_details": {
+                    "category": flag.get("category", "unknown"),
+                    "risk_level": flag.get("risk_level", "MEDIUM"),
+                    "rationale": flag.get("rationale", ""),
+                    "field_name": flag.get("field_name", ""),
+                    "field_value": flag.get("field_value", "")
+                },
+                "region": region,
+                "contract_evidence": flag.get("contract_evidence", {})
+            }
+            
+            # Call Claude API for correction suggestions
+            response = claude_client.generate_compliance_rules(
+                region=region,
+                domain="simplified_correction",
+                document_fields=[context['flag_details']]
+            )
+            
+            # Parse Claude's response
+            if response and not response.get("fallback", False):
+                claude_rules = response.get("rules", [])
+                if claude_rules:
+                    rule = claude_rules[0]
+                    
+                    correction = {
+                        "type": "claude_simplified_correction",
+                        "flag_id": flag.get("id", "unknown"),
+                        "category": flag.get("category", "unknown"),
+                        "risk_level": flag.get("risk_level", "MEDIUM"),
+                        "original_text": flag.get("rationale", ""),
+                        "correction_suggestion": rule.get("description", "AI-generated correction"),
+                        "detailed_explanation": rule.get("description", ""),
+                        "suggested_clause": rule.get("description", ""),
+                        "implementation_notes": f"Apply this correction to address {flag.get('category')} compliance requirements",
+                        "confidence": 0.9,
+                        "priority_level": "HIGH" if flag.get("risk_level") == "HIGH" else "MEDIUM",
+                        "location": context['contract_evidence'],
+                        "reason": f"AI-generated correction for simplified analysis: {flag.get('rationale', '')}",
+                        "ai_generated": True,
+                        "claude_rule_id": rule.get("id", "unknown"),
+                        "source": "simplified_analysis"
+                    }
+                    
+                    return correction
+            
+        except Exception as e:
+            logger.error(f"Error getting Claude correction for simplified flag: {e}")
+        
+        return None
+    
+    def _get_claude_correction_for_simplified_correlation(self, correlation: Dict[str, Any], region: str) -> Optional[Dict[str, Any]]:
+        """Use Claude AI to generate intelligent correction suggestions for simplified analysis correlations"""
+        try:
+            # Prepare context for Claude
+            context = {
+                "correlation_details": correlation,
+                "region": region
+            }
+            
+            # Call Claude API for correction suggestions
+            response = claude_client.generate_compliance_rules(
+                region=region,
+                domain="simplified_correlation_correction",
+                document_fields=[context['correlation_details']]
+            )
+            
+            # Parse Claude's response
+            if response and not response.get("fallback", False):
+                claude_rules = response.get("rules", [])
+                if claude_rules:
+                    rule = claude_rules[0]
+                    
+                    correction = {
+                        "type": "claude_simplified_correlation_correction",
+                        "correlation_type": correlation.get("correlation_type", "unknown"),
+                        "risk_level": correlation.get("risk_level", "MEDIUM"),
+                        "original_description": correlation.get("description", ""),
+                        "correction_suggestion": rule.get("description", "AI-generated correlation correction"),
+                        "detailed_explanation": rule.get("description", ""),
+                        "suggested_clause": rule.get("description", ""),
+                        "implementation_notes": f"Apply this correction to address {correlation.get('correlation_type')} risk correlation",
+                        "confidence": 0.85,
+                        "priority_level": "HIGH" if correlation.get("risk_level") == "HIGH" else "MEDIUM",
+                        "affected_fields": correlation.get("fields", []),
+                        "reason": f"AI-generated correction for simplified correlation: {correlation.get('description', '')}",
+                        "ai_generated": True,
+                        "claude_rule_id": rule.get("id", "unknown"),
+                        "source": "simplified_analysis"
+                    }
+                    
+                    return correction
+            
+        except Exception as e:
+            logger.error(f"Error getting Claude correction for simplified correlation: {e}")
+        
+        return None
 
 # Global instance
 smart_corrector = SmartDocumentCorrector()

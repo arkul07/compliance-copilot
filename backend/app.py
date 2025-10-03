@@ -24,6 +24,7 @@ from pathway_pipeline import start_pipeline, add_rule_file, add_contract_file, a
 from risk_correlation import risk_engine
 from config import Config
 from data_anonymizer import anonymizer
+from smart_document_corrector import smart_corrector
 
 APP_TITLE = "Global Compliance Copilot API"
 app = FastAPI(title=APP_TITLE)
@@ -321,29 +322,41 @@ async def smart_analyze_document_with_claude(
     region: str = Query("EU", pattern="^(EU|US|IN|UK)$"),
     contract_path: Optional[str] = None,
 ):
-    """Enhanced document analysis with Claude AI-powered corrections"""
+    """Enhanced document analysis using simplified analysis results for corrections"""
     if contract_path:
         cpath = Path(contract_path)
         if not cpath.exists():
             raise HTTPException(status_code=400, detail="contract_path not found")
     else:
+        # Use the most recently uploaded contract
         cpath = _latest_contract()
         if not cpath:
-            raise HTTPException(status_code=400, detail="no contracts uploaded")
+            raise HTTPException(status_code=400, detail="no contracts uploaded. Please upload a contract first.")
     
     try:
-        # Run enhanced analysis with Claude corrections
-        analysis_result = smart_corrector.analyze_document_for_corrections(str(cpath), region)
+        # First get the simplified analysis results (Claude-generated flags)
+        simplified_result = simplified_engine.analyze_document(str(cpath), region, "general")
+        
+        # Use the simplified analysis results to generate smart corrections
+        smart_corrections = smart_corrector._generate_corrections_from_simplified_analysis(simplified_result, region)
         
         # Generate smart corrections summary using Claude
-        smart_summary = smart_corrector.generate_smart_corrections_summary(analysis_result)
+        smart_summary = smart_corrector.generate_smart_corrections_summary({
+            "correction_opportunities": smart_corrections,
+            "region": region
+        })
         
         # Combine results
         enhanced_result = {
-            **analysis_result,
+            "document_path": str(cpath),
+            "region": region,
+            "simplified_analysis": simplified_result,
+            "correction_opportunities": smart_corrections,
             "smart_summary": smart_summary,
             "claude_enhanced": True,
-            "correction_ai_source": "Claude AI"
+            "correction_ai_source": "Claude AI",
+            "document_source": "user_uploaded",
+            "uses_simplified_flags": True
         }
         
         return enhanced_result
@@ -429,18 +442,22 @@ def analyze_document_for_corrections(
     region: str = Query("EU", pattern="^(EU|US|IN|UK)$"),
     contract_path: Optional[str] = None,
 ):
-    """Analyze document and identify correction opportunities using LandingAI ADE and Pathway"""
+    """Analyze document and identify correction opportunities using uploaded contract"""
     if contract_path:
         cpath = Path(contract_path)
         if not cpath.exists():
             raise HTTPException(status_code=400, detail="contract_path not found")
     else:
+        # Use the most recently uploaded contract
         cpath = _latest_contract()
         if not cpath:
-            raise HTTPException(status_code=400, detail="no contracts uploaded")
+            raise HTTPException(status_code=400, detail="no contracts uploaded. Please upload a contract first.")
     
-    analysis_result = smart_corrector.analyze_document_for_corrections(str(cpath), region)
-    return analysis_result
+    try:
+        analysis_result = smart_corrector.analyze_document_for_corrections(str(cpath), region)
+        return analysis_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Document analysis failed: {str(e)}")
 
 @app.get("/generate_corrected_document")
 def generate_corrected_document(

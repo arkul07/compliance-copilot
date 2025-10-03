@@ -404,10 +404,17 @@ export default function Home() {
         const data = await response.json();
         setSmartAnalysis(data);
       } else {
-        console.error("Smart analysis failed");
+        const errorData = await response.json();
+        console.error("Smart analysis failed:", errorData);
+        if (errorData.detail && errorData.detail.includes("no contracts uploaded")) {
+          alert("❌ No contract uploaded. Please upload a contract first using the file input above.");
+        } else {
+          alert("❌ Smart analysis failed. Please try again.");
+        }
       }
     } catch (error) {
       console.error("Error in smart analysis:", error);
+      alert("❌ Error in smart analysis. Please try again.");
     } finally {
       setIsSmartAnalyzing(false);
     }
@@ -924,8 +931,18 @@ export default function Home() {
             <button onClick={checkSystemStatus} className="button-secondary" disabled={isCheckingStatus}>
               {isCheckingStatus ? "⏳ Checking..." : "🔧 System Status"}
             </button>
-            <button onClick={smartAnalyzeDocument} className="button-secondary" disabled={isSmartAnalyzing}>
+            <button 
+              onClick={smartAnalyzeDocument} 
+              className="button-secondary" 
+              disabled={isSmartAnalyzing}
+              title={contractFile ? "Analyze uploaded contract with Claude AI" : "Upload a contract first to use smart analysis"}
+              style={{
+                opacity: contractFile ? 1 : 0.6,
+                cursor: contractFile ? "pointer" : "not-allowed"
+              }}
+            >
               {isSmartAnalyzing ? "⏳ Analyzing..." : "🤖 Smart Analysis"}
+              {contractFile && <span style={{ marginLeft: "8px", fontSize: "12px" }}>📄</span>}
             </button>
           </div>
         </div>
