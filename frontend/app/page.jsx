@@ -2,12 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8001";
 
 export default function Home() {
   const [region, setRegion] = useState("EU");
   const [flags, setFlags] = useState([]);
   const [contractFile, setContractFile] = useState(null);
+  
+  // Novel features state
+  const [riskCorrelations, setRiskCorrelations] = useState([]);
+  const [systemStatus, setSystemStatus] = useState(null);
+  const [tables, setTables] = useState([]);
+  
+  // Modal states
+  const [showRiskInfoModal, setShowRiskInfoModal] = useState(false);
+  const [showTableInfoModal, setShowTableInfoModal] = useState(false);
 
   const [ruleFile, setRuleFile] = useState(null);
   const [ruleText, setRuleText] = useState("");
@@ -197,6 +206,50 @@ export default function Home() {
     URL.revokeObjectURL(url);
   }
 
+  // Novel Features Functions
+  async function analyzeRiskCorrelation() {
+    try {
+      const r = await fetch(`${API_BASE}/risk_correlation?region=${region}`);
+      if (!r.ok) {
+        const errorData = await r.json().catch(() => ({}));
+        alert(`❌ Risk correlation analysis failed:\n${r.status} - ${errorData.detail || r.statusText}`);
+        return;
+      }
+      const data = await r.json();
+      setRiskCorrelations(data.correlations || []);
+      alert(`🔍 Risk Correlation Analysis Complete!\n\nFound ${data.correlations?.length || 0} correlations.\nOverall Risk: ${data.summary?.overall_risk || 'Unknown'}`);
+    } catch (error) {
+      alert(`❌ Risk correlation error: ${error.message}`);
+    }
+  }
+
+  async function extractTables() {
+    try {
+      const r = await fetch(`${API_BASE}/extract_tables`);
+      if (!r.ok) {
+        const errorData = await r.json().catch(() => ({}));
+        alert(`❌ Table extraction failed:\n${r.status} - ${errorData.detail || r.statusText}`);
+        return;
+      }
+      const data = await r.json();
+      setTables(data.tables || []);
+      alert(`📊 Table Extraction Complete!\n\nExtracted ${data.tables?.length || 0} tables from the document.`);
+    } catch (error) {
+      alert(`❌ Table extraction error: ${error.message}`);
+    }
+  }
+
+  async function checkSystemStatus() {
+    try {
+      const r = await fetch(`${API_BASE}/system_status`);
+      if (!r.ok) return;
+      const data = await r.json();
+      setSystemStatus(data);
+    } catch (error) {
+      console.error("System status check failed:", error);
+    }
+  }
+
   const box = { border: "1px solid #e5e7eb", padding: 16, borderRadius: 12, marginBottom: 16, background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" };
   const buttonStyle = { 
     background: "#2563eb", 
@@ -293,6 +346,22 @@ export default function Home() {
         <button onClick={checkCompliance} style={{...buttonStyle, background: "#059669", padding: "12px 24px", fontSize: "16px"}}>🔍 Run Compliance Check</button>
       </section>
 
+      {/* Novel Features Section */}
+      <section style={box}>
+        <h3>🚀 Novel Features (Hackathon)</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <button onClick={analyzeRiskCorrelation} style={{...buttonStyle, background: "#7c3aed", padding: "10px 16px"}}>
+            🔗 Risk Correlation Analysis
+          </button>
+          <button onClick={extractTables} style={{...buttonStyle, background: "#dc2626", padding: "10px 16px"}}>
+            📊 Extract Tables (LandingAI ADE)
+          </button>
+        </div>
+        <button onClick={checkSystemStatus} style={{...buttonStyle, background: "#6b7280", padding: "8px 16px", fontSize: "14px"}}>
+          🔧 Check System Status
+        </button>
+      </section>
+
       <section style={box}>
         <h3>Flags ({flags.length})</h3>
         {flags.length === 0 ? (
@@ -326,6 +395,294 @@ export default function Home() {
           <button onClick={downloadCSV} disabled={flags.length === 0} style={{...buttonStyle, background: "#dc2626", opacity: flags.length === 0 ? 0.5 : 1}}>📊 Download CSV</button>
         </div>
       </section>
+
+        {/* Risk Correlations Display */}
+        {riskCorrelations.length > 0 && (
+          <section style={box}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3>🔗 Risk Correlations ({riskCorrelations.length})</h3>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <div style={{ 
+                  fontSize: "12px", 
+                  color: "#6b7280", 
+                  background: "#f0f9ff", 
+                  padding: "6px 12px", 
+                  borderRadius: "6px",
+                  border: "1px solid #bae6fd"
+                }}>
+                  💡 Finds hidden connections between documents and clauses
+                </div>
+                <button 
+                  onClick={() => setShowRiskInfoModal(true)}
+                  style={{
+                    background: "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    fontWeight: "500"
+                  }}
+                >
+                  ℹ️ Info
+                </button>
+              </div>
+            </div>
+            <div style={{ maxHeight: 400, overflow: "auto" }}>
+              {riskCorrelations.map((correlation, index) => (
+                <div key={index} style={{ 
+                  padding: "16px", 
+                  margin: "12px 0", 
+                  background: correlation.risk_level === "HIGH" ? "#fef2f2" : correlation.risk_level === "MEDIUM" ? "#fffbeb" : "#f0fdf4",
+                  border: `2px solid ${correlation.risk_level === "HIGH" ? "#fecaca" : correlation.risk_level === "MEDIUM" ? "#fed7aa" : "#bbf7d0"}`,
+                  borderRadius: "12px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+                    <div>
+                      <div style={{ 
+                        fontWeight: "600", 
+                        fontSize: "16px",
+                        color: correlation.risk_level === "HIGH" ? "#dc2626" : correlation.risk_level === "MEDIUM" ? "#d97706" : "#16a34a",
+                        marginBottom: "4px"
+                      }}>
+                        {correlation.correlation_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </div>
+                      <div style={{ 
+                        fontSize: "12px", 
+                        color: correlation.risk_level === "HIGH" ? "#dc2626" : correlation.risk_level === "MEDIUM" ? "#d97706" : "#16a34a",
+                        fontWeight: "600",
+                        background: correlation.risk_level === "HIGH" ? "#fef2f2" : correlation.risk_level === "MEDIUM" ? "#fffbeb" : "#f0fdf4",
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                        display: "inline-block"
+                      }}>
+                        {correlation.risk_level} RISK
+                      </div>
+                    </div>
+                    <div style={{ 
+                      fontSize: "12px", 
+                      color: "#6b7280",
+                      background: "#f3f4f6",
+                      padding: "4px 8px",
+                      borderRadius: "6px"
+                    }}>
+                      {Math.round(correlation.confidence * 100)}% confidence
+                    </div>
+                  </div>
+                  
+                  <div style={{ fontSize: "14px", color: "#374151", marginBottom: "12px", lineHeight: "1.5" }}>
+                    {correlation.description}
+                  </div>
+                  
+                  {correlation.risk_indicators && correlation.risk_indicators.length > 0 && (
+                    <div style={{ marginBottom: "12px" }}>
+                      <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "6px" }}>
+                        Risk Indicators:
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                        {correlation.risk_indicators.map((indicator, idx) => (
+                          <span key={idx} style={{
+                            background: "#e5e7eb",
+                            color: "#374151",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            fontSize: "11px",
+                            fontWeight: "500"
+                          }}>
+                            {indicator.indicator || indicator}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div style={{ 
+                    display: "flex", 
+                    justifyContent: "space-between", 
+                    alignItems: "center",
+                    fontSize: "12px", 
+                    color: "#9ca3af",
+                    borderTop: "1px solid #e5e7eb",
+                    paddingTop: "8px"
+                  }}>
+                    <span>Fields: {correlation.matching_fields} | Indicators: {correlation.risk_indicators?.length || 0}</span>
+                    <span>Region: {correlation.region}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+      {/* System Status Display */}
+      {systemStatus && (
+        <section style={box}>
+          <h3>🔧 System Status</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ padding: "12px", background: systemStatus.landingai_available ? "#f0fdf4" : "#fef2f2", borderRadius: "8px" }}>
+              <div style={{ fontWeight: "600", marginBottom: "4px" }}>LandingAI ADE</div>
+              <div style={{ color: systemStatus.landingai_available ? "#15803d" : "#dc2626" }}>
+                {systemStatus.landingai_available ? "✅ Available" : "❌ Not Configured"}
+              </div>
+            </div>
+            <div style={{ padding: "12px", background: systemStatus.pathway_available ? "#f0fdf4" : "#fef2f2", borderRadius: "8px" }}>
+              <div style={{ fontWeight: "600", marginBottom: "4px" }}>Pathway</div>
+              <div style={{ color: systemStatus.pathway_available ? "#15803d" : "#dc2626" }}>
+                {systemStatus.pathway_available ? "✅ Available" : "❌ Not Configured"}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+        {/* Tables Display */}
+        {tables.length > 0 && (
+          <section style={box}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3>📊 Extracted Tables ({tables.length})</h3>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <div style={{ 
+                  fontSize: "12px", 
+                  color: "#6b7280", 
+                  background: "#f0f9ff", 
+                  padding: "6px 12px", 
+                  borderRadius: "6px",
+                  border: "1px solid #bae6fd"
+                }}>
+                  💡 Tables show compliance matrices, risk assessments, and regulatory mappings
+                </div>
+                <button 
+                  onClick={() => setShowTableInfoModal(true)}
+                  style={{
+                    background: "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    fontWeight: "500"
+                  }}
+                >
+                  ℹ️ Info
+                </button>
+              </div>
+            </div>
+            <div style={{ maxHeight: 500, overflow: "auto" }}>
+              {tables.map((table, index) => (
+                <div key={index} style={{ 
+                  padding: "16px", 
+                  margin: "12px 0", 
+                  background: "#ffffff",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "12px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+                }}>
+                  <div style={{ 
+                    display: "flex", 
+                    justifyContent: "space-between", 
+                    alignItems: "center",
+                    marginBottom: "12px"
+                  }}>
+                    <h4 style={{ 
+                      margin: 0, 
+                      fontSize: "16px", 
+                      fontWeight: "600",
+                      color: "#1f2937"
+                    }}>
+                      {table.title || `Table ${index + 1}`}
+                    </h4>
+                    <div style={{ 
+                      fontSize: "12px", 
+                      color: "#6b7280",
+                      background: "#f3f4f6",
+                      padding: "4px 8px",
+                      borderRadius: "6px"
+                    }}>
+                      Confidence: {Math.round((table.confidence || 0.9) * 100)}%
+                    </div>
+                  </div>
+                  
+                  {/* Render table content as a proper table */}
+                  <div style={{ 
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    overflow: "hidden"
+                  }}>
+                    {table.content && (
+                      <div style={{ padding: "12px" }}>
+                        {table.content.split('\n').map((row, rowIndex) => {
+                          const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
+                          if (cells.length === 0) return null;
+                          
+                          return (
+                            <div key={rowIndex} style={{
+                              display: "grid",
+                              gridTemplateColumns: `repeat(${cells.length}, 1fr)`,
+                              gap: "8px",
+                              padding: rowIndex === 0 ? "8px 12px" : "6px 12px",
+                              background: rowIndex === 0 ? "#f1f5f9" : "transparent",
+                              borderBottom: rowIndex === 0 ? "2px solid #cbd5e1" : "1px solid #e2e8f0",
+                              fontWeight: rowIndex === 0 ? "600" : "400",
+                              fontSize: "14px"
+                            }}>
+                              {cells.map((cell, cellIndex) => {
+                                // Color code based on content
+                                let cellStyle = {
+                                  padding: "4px 8px",
+                                  color: rowIndex === 0 ? "#374151" : "#6b7280",
+                                  borderRight: cellIndex < cells.length - 1 ? "1px solid #e2e8f0" : "none"
+                                };
+                                
+                                // Add color coding for risk levels and status
+                                if (cell.toLowerCase().includes('high') || cell.toLowerCase().includes('critical')) {
+                                  cellStyle.background = "#fef2f2";
+                                  cellStyle.color = "#dc2626";
+                                  cellStyle.fontWeight = "600";
+                                } else if (cell.toLowerCase().includes('medium') || cell.toLowerCase().includes('review')) {
+                                  cellStyle.background = "#fffbeb";
+                                  cellStyle.color = "#d97706";
+                                  cellStyle.fontWeight = "600";
+                                } else if (cell.toLowerCase().includes('low') || cell.toLowerCase().includes('compliant')) {
+                                  cellStyle.background = "#f0fdf4";
+                                  cellStyle.color = "#16a34a";
+                                  cellStyle.fontWeight = "600";
+                                } else if (cell.toLowerCase().includes('yes') || cell.toLowerCase().includes('no')) {
+                                  cellStyle.fontWeight = "600";
+                                }
+                                
+                                return (
+                                  <div key={cellIndex} style={cellStyle}>
+                                    {cell}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div style={{ 
+                    display: "flex", 
+                    justifyContent: "space-between", 
+                    alignItems: "center",
+                    marginTop: "12px",
+                    fontSize: "12px",
+                    color: "#6b7280"
+                  }}>
+                    <span>Page {table.page || 1}</span>
+                    <span>Table ID: {table.table_id || `table_${index + 1}`}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
       {/* Explain Modal */}
       {showExplainModal && (
@@ -487,6 +844,134 @@ export default function Home() {
                 </div>
               </div>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Risk Correlations Info Modal */}
+      {showRiskInfoModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            maxWidth: "600px",
+            width: "90%",
+            maxHeight: "80vh",
+            overflow: "auto"
+          }}>
+            <h3 style={{ marginTop: 0, color: "#7c3aed" }}>🔗 Risk Correlation Analysis</h3>
+            <p><strong>What it does:</strong> Finds hidden connections and conflicts between different documents, clauses, and compliance requirements.</p>
+            
+            <h4 style={{ color: "#374151", marginTop: "20px" }}>Why This Matters:</h4>
+            <ul style={{ paddingLeft: "20px" }}>
+              <li><strong>Cross-Document Conflicts:</strong> Identifies when clauses in different contracts contradict each other</li>
+              <li><strong>Jurisdiction Mismatches:</strong> Spots when tax, labor, or privacy laws conflict across regions</li>
+              <li><strong>Hidden Dependencies:</strong> Reveals how changes in one document affect compliance in others</li>
+              <li><strong>Risk Amplification:</strong> Shows how multiple small issues combine into major risks</li>
+            </ul>
+
+            <h4 style={{ color: "#374151", marginTop: "20px" }}>Real Business Value:</h4>
+            <ul style={{ paddingLeft: "20px" }}>
+              <li><strong>Due Diligence:</strong> Catch compliance conflicts before they become legal issues</li>
+              <li><strong>Risk Management:</strong> Prioritize which compliance issues need immediate attention</li>
+              <li><strong>Cost Savings:</strong> Avoid expensive legal disputes and regulatory fines</li>
+              <li><strong>Strategic Planning:</strong> Understand how regulatory changes affect your entire contract portfolio</li>
+            </ul>
+
+            <h4 style={{ color: "#374151", marginTop: "20px" }}>How It Works:</h4>
+            <p>The AI analyzes document content using LandingAI ADE to extract key compliance fields, then uses advanced correlation algorithms to find patterns and conflicts that human reviewers might miss.</p>
+
+            <button 
+              onClick={() => setShowRiskInfoModal(false)}
+              style={{
+                background: "#7c3aed",
+                color: "white",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                marginTop: "16px"
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tables Info Modal */}
+      {showTableInfoModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            maxWidth: "600px",
+            width: "90%",
+            maxHeight: "80vh",
+            overflow: "auto"
+          }}>
+            <h3 style={{ marginTop: 0, color: "#dc2626" }}>📊 Table Extraction & Analysis</h3>
+            <p><strong>What it does:</strong> Uses LandingAI ADE's DPT-2 model to extract structured data from documents, converting unstructured PDFs into queryable compliance matrices and risk assessments.</p>
+            
+            <h4 style={{ color: "#374151", marginTop: "20px" }}>Types of Tables Extracted:</h4>
+            <ul style={{ paddingLeft: "20px" }}>
+              <li><strong>Compliance Matrices:</strong> Track which requirements are met/missing across different regulations</li>
+              <li><strong>Risk Assessment Tables:</strong> Quantify risk levels and mitigation strategies</li>
+              <li><strong>Tax Withholding Schedules:</strong> Different rates by country and treaty benefits</li>
+              <li><strong>Financial Data Tables:</strong> Revenue, costs, liabilities from financial statements</li>
+              <li><strong>Regulatory Mapping:</strong> Map requirements to specific regulations and standards</li>
+            </ul>
+
+            <h4 style={{ color: "#374151", marginTop: "20px" }}>Business Applications:</h4>
+            <ul style={{ paddingLeft: "20px" }}>
+              <li><strong>Due Diligence:</strong> Quickly scan compliance status across multiple documents</li>
+              <li><strong>Audit Preparation:</strong> Generate compliance dashboards automatically</li>
+              <li><strong>Risk Management:</strong> Identify high-risk areas that need immediate attention</li>
+              <li><strong>Cross-border Analysis:</strong> Compare requirements across different jurisdictions</li>
+              <li><strong>Financial Analysis:</strong> Extract and analyze financial data from complex documents</li>
+            </ul>
+
+            <h4 style={{ color: "#374151", marginTop: "20px" }}>Technical Innovation:</h4>
+            <p>Uses LandingAI's latest DPT-2 model for superior table extraction, providing confidence scores, evidence tracking, and structured output that can be queried and analyzed programmatically.</p>
+
+            <button 
+              onClick={() => setShowTableInfoModal(false)}
+              style={{
+                background: "#dc2626",
+                color: "white",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                marginTop: "16px"
+              }}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

@@ -1,0 +1,29 @@
+[
+  {
+    "name": "privacy_policy_reference",
+    "value": "Chunk(id='a78bd926-36b0-412d-8d81-f9a9630de59a', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.22281335294246674, left=0.12305733561515808, right=0.6694424152374268, top=0.1320437639951706), page=0), markdown=\"<a id='a78bd926-36b0-412d-8d81-f9a9630de59a'></a>\\n\\n# Scenario 1: Data Privacy Conflict\\n\\nContract: Allows transfer to non-adequate countries without safeguards.\\nRule: GDPR requires SCCs or adequacy.\\nConflict: Non-compliance with GDPR cross-border rules.\\nResolution: Add SCCs or Binding Corporate Rules.\", type='text')",
+    "evidence": {
+      "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/compliance_conflict_scenarios.pdf",
+      "page": 1,
+      "section": "LandingAI ADE"
+    }
+  },
+  {
+    "name": "termination_notice",
+    "value": "Chunk(id='369eda25-d8cd-42b8-8b8e-19446d8fe72e', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.3381664454936981, left=0.12159159779548645, right=0.5608416795730591, top=0.24502460658550262), page=0), markdown=\"<a id='369eda25-d8cd-42b8-8b8e-19446d8fe72e'></a>\\n\\n## Scenario 2: Labor Law Mismatch\\n\\nContract: 7-day termination notice.\\nLaw: Local labor law requires 30 days.\\nConflict: Gap in compliance with statutory notice.\\nResolution: Amend contract to match statutory minimum.\", type='text')",
+    "evidence": {
+      "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/compliance_conflict_scenarios.pdf",
+      "page": 1,
+      "section": "LandingAI ADE"
+    }
+  },
+  {
+    "name": "jurisdiction",
+    "value": "Chunk(id='3d6afc4b-0336-436b-8250-e7a8011b6e66', grounding=ChunkGrounding(box=ChunkGroundingBox(bottom=0.45356833934783936, left=0.12183968722820282, right=0.5490024089813232, top=0.3588196635246277), page=0), markdown=\"<a id='3d6afc4b-0336-436b-8250-e7a8011b6e66'></a>\\n\\n# Scenario 3: Tax Jurisdiction Conflict\\n\\nContract: Specifies US tax withholding.\\nLaw: EU client eligible for tax treaty benefits.\\nConflict: Over-withholding leads to double taxation.\\nResolution: Apply treaty relief and adjust withholding.\", type='text')",
+    "evidence": {
+      "file": "/Users/aryakulkarni/Downloads/compliance-copilot/backend/contracts/sample/compliance_conflict_scenarios.pdf",
+      "page": 1,
+      "section": "LandingAI ADE"
+    }
+  }
+]

@@ -5,10 +5,12 @@ from typing import List, Optional
 from pathlib import Path
 import json
 
-from .landingai_client import extract_fields
+from .landingai_client import extract_fields, extract_tables
 from .checker import check
 from .models.schemas import ComplianceFlag, ContractField, Evidence
-from .pathway_pipeline import start_pipeline, add_rule_file, add_contract_file
+from .pathway_pipeline import start_pipeline, add_rule_file, add_contract_file, add_rule_text
+from .risk_correlation import risk_engine
+from .config import Config
 from . import __init__ as _pkg  # noqa
 
 APP_TITLE = "Global Compliance Copilot API"
@@ -176,3 +178,63 @@ def save_rule(payload: dict) -> dict:
     except Exception:
         pass
     return {"ok": True, "name": name, "path": str(p)}
+
+# ---------- Novel Features ----------
+
+@app.get("/risk_correlation")
+def analyze_risk_correlation(
+    region: str = Query("EU", pattern="^(EU|US|IN)$"),
+    contract_path: Optional[str] = None,
+):
+    """Analyze cross-document risk correlations - Novel Feature"""
+    if contract_path:
+        cpath = Path(contract_path)
+        if not cpath.exists():
+            raise HTTPException(status_code=400, detail="contract_path not found")
+    else:
+        cpath = _latest_contract()
+        if not cpath:
+            raise HTTPException(status_code=400, detail="no contracts uploaded")
+    
+    fields = extract_fields(str(cpath))
+    correlations = risk_engine.analyze_cross_document_risks(fields, region)
+    summary = risk_engine.get_risk_summary(correlations)
+    
+    return {
+        "contract_path": str(cpath),
+        "region": region,
+        "correlations": correlations,
+        "summary": summary
+    }
+
+@app.get("/extract_tables")
+def extract_document_tables(
+    contract_path: Optional[str] = None,
+):
+    """Extract tables from documents using LandingAI ADE - Novel Feature"""
+    if contract_path:
+        cpath = Path(contract_path)
+        if not cpath.exists():
+            raise HTTPException(status_code=400, detail="contract_path not found")
+    else:
+        cpath = _latest_contract()
+        if not cpath:
+            raise HTTPException(status_code=400, detail="no contracts uploaded")
+    
+    tables = extract_tables(str(cpath))
+    return {
+        "contract_path": str(cpath),
+        "tables": tables,
+        "count": len(tables)
+    }
+
+@app.get("/system_status")
+def get_system_status():
+    """Get system status including LandingAI and Pathway availability"""
+    return {
+        "landingai_available": Config.is_landingai_available(),
+        "pathway_available": Config.is_pathway_available(),
+        "api_host": Config.API_HOST,
+        "api_port": Config.API_PORT,
+        "frontend_url": Config.FRONTEND_URL
+    }
