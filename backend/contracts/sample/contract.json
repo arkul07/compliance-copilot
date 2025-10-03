@@ -1,0 +1,38 @@
+[
+  {
+    "name": "jurisdiction",
+    "value": "EU",
+    "evidence": {
+      "file": "C:\\MIPSASM\\Documents\\G2C\\compliance-copilot\\backend\\contracts\\sample\\contract.pdf",
+      "page": 1,
+      "section": null
+    }
+  },
+  {
+    "name": "data_processing",
+    "value": "controller",
+    "evidence": {
+      "file": "C:\\MIPSASM\\Documents\\G2C\\compliance-copilot\\backend\\contracts\\sample\\contract.pdf",
+      "page": 2,
+      "section": null
+    }
+  },
+  {
+    "name": "termination_notice",
+    "value": "30 days",
+    "evidence": {
+      "file": "C:\\MIPSASM\\Documents\\G2C\\compliance-copilot\\backend\\contracts\\sample\\contract.pdf",
+      "page": 3,
+      "section": null
+    }
+  },
+  {
+    "name": "tax_withholding_clause",
+    "value": "applicable",
+    "evidence": {
+      "file": "C:\\MIPSASM\\Documents\\G2C\\compliance-copilot\\backend\\contracts\\sample\\contract.pdf",
+      "page": 4,
+      "section": null
+    }
+  }
+]

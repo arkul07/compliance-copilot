@@ -17,32 +17,61 @@ export default function Home() {
   const [editorName, setEditorName] = useState("new_rule.md");
   const [editorText, setEditorText] = useState("");
 
+  // Modal state
+  const [showExplainModal, setShowExplainModal] = useState(false);
+  const [explainData, setExplainData] = useState(null);
+  const [loadingExplain, setLoadingExplain] = useState(false);
+
   async function uploadContract() {
-    if (!contractFile) return alert("Choose a contract PDF first.");
-    const fd = new FormData();
-    fd.append("file", contractFile, contractFile.name);
-    const r = await fetch(`${API_BASE}/upload_contract`, { method: "POST", body: fd });
-    if (!r.ok) return alert("Upload failed");
-    const data = await r.json();
-    alert("Contract uploaded");
-    console.log("extracted_fields", data.fields);
+    if (!contractFile) {
+      alert("Please choose a contract PDF file first.");
+      return;
+    }
+    
+    try {
+      const fd = new FormData();
+      fd.append("file", contractFile, contractFile.name);
+      const r = await fetch(`${API_BASE}/upload_contract`, { method: "POST", body: fd });
+      if (!r.ok) {
+        const errorData = await r.json().catch(() => ({}));
+        alert(`Upload failed: ${r.status} ${errorData.detail || r.statusText}`);
+        return;
+      }
+      const data = await r.json();
+      alert(`✅ Contract uploaded successfully!\n\nExtracted ${data.fields?.length || 0} fields.`);
+      console.log("extracted_fields", data.fields);
+    } catch (error) {
+      alert(`❌ Upload error: ${error.message}`);
+    }
   }
 
   async function addRule() {
-    if (!ruleFile && !ruleText.trim()) return alert("Provide a rule file or text.");
-    let fd;
-    if (ruleFile) {
-      fd = new FormData();
-      fd.append("file", ruleFile, ruleFile.name);
-    } else {
-      const blob = new Blob([ruleText], { type: "text/markdown" });
-      fd = new FormData();
-      fd.append("file", blob, "snippet.md");
+    if (!ruleFile && !ruleText.trim()) {
+      alert("Please provide either a rule file or paste rule text.");
+      return;
     }
-    const r = await fetch(`${API_BASE}/upload_rule`, { method: "POST", body: fd });
-    if (!r.ok) return alert("Add rule failed");
-    alert("Rule added");
-    await refreshRules();
+    
+    try {
+      let fd;
+      if (ruleFile) {
+        fd = new FormData();
+        fd.append("file", ruleFile, ruleFile.name);
+      } else {
+        const blob = new Blob([ruleText], { type: "text/markdown" });
+        fd = new FormData();
+        fd.append("file", blob, "snippet.md");
+      }
+      const r = await fetch(`${API_BASE}/upload_rule`, { method: "POST", body: fd });
+      if (!r.ok) {
+        const errorData = await r.json().catch(() => ({}));
+        alert(`❌ Add rule failed: ${r.status} ${errorData.detail || r.statusText}`);
+        return;
+      }
+      alert("✅ Rule added successfully!");
+      await refreshRules();
+    } catch (error) {
+      alert(`❌ Add rule error: ${error.message}`);
+    }
   }
 
   async function refreshRules() {
@@ -78,21 +107,61 @@ export default function Home() {
   }
 
   async function checkCompliance() {
-    const r = await fetch(`${API_BASE}/check?region=${region}`);
-    if (!r.ok) return alert("Check failed");
-    const data = await r.json();
-    setFlags(data);
+    try {
+      const r = await fetch(`${API_BASE}/check?region=${region}`);
+      if (!r.ok) {
+        const errorData = await r.json().catch(() => ({}));
+        alert(`❌ Compliance check failed:\n${r.status} - ${errorData.detail || r.statusText}`);
+        return;
+      }
+      const data = await r.json();
+      setFlags(data);
+      if (data.length === 0) {
+        alert("✅ No compliance issues found for the selected region!");
+      } else {
+        alert(`🔍 Found ${data.length} compliance issue(s). Check the flags table below for details.`);
+      }
+    } catch (error) {
+      alert(`❌ Compliance check error: ${error.message}`);
+    }
   }
 
   async function explain(id) {
-    const r = await fetch(`${API_BASE}/explain?id=${encodeURIComponent(id)}&region=${region}`);
-    const text = await r.text();
+    setLoadingExplain(true);
+    setShowExplainModal(true);
+    
     try {
-      const j = JSON.parse(text);
-      alert(`Explain:\n${JSON.stringify(j, null, 2)}`);
-    } catch {
-      alert(text);
+      const r = await fetch(`${API_BASE}/explain?id=${encodeURIComponent(id)}&region=${region}`);
+      if (!r.ok) {
+        setExplainData({ 
+          error: `Failed to get explanation: ${r.status} ${r.statusText}` 
+        });
+        return;
+      }
+      
+      const text = await r.text();
+      try {
+        const j = JSON.parse(text);
+        setExplainData(j);
+      } catch {
+        setExplainData({ 
+          error: `Invalid response format`,
+          rawResponse: text 
+        });
+      }
+    } catch (error) {
+      setExplainData({ 
+        error: `Request failed: ${error.message}` 
+      });
+    } finally {
+      setLoadingExplain(false);
     }
+  }
+
+  function closeExplainModal() {
+    setShowExplainModal(false);
+    setExplainData(null);
+    setLoadingExplain(false);
   }
 
   function downloadJSON() {
@@ -128,37 +197,70 @@ export default function Home() {
     URL.revokeObjectURL(url);
   }
 
-  const box = { border: "1px solid #e5e7eb", padding: 16, borderRadius: 12, marginBottom: 16 };
+  const box = { border: "1px solid #e5e7eb", padding: 16, borderRadius: 12, marginBottom: 16, background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" };
+  const buttonStyle = { 
+    background: "#2563eb", 
+    color: "white", 
+    border: "none", 
+    padding: "8px 16px", 
+    borderRadius: "6px", 
+    cursor: "pointer",
+    fontSize: "14px",
+    fontWeight: "500"
+  };
 
   return (
-    <main style={{ padding: 24, maxWidth: 1200, margin: "0 auto" }}>
-      <h1 style={{ marginBottom: 8 }}>Global Compliance Copilot</h1>
-      <div style={{ marginBottom: 16 }}>
-        <label>Region:&nbsp;</label>
-        <select value={region} onChange={(e) => setRegion(e.target.value)}>
-          <option>EU</option>
-          <option>US</option>
-          <option>IN</option>
-        </select>
-        <span style={{ marginLeft: 12, color: "#6b7280" }}>API: {API_BASE}</span>
+    <main style={{ padding: 24, maxWidth: 1200, margin: "0 auto", background: "#f8fafc", minHeight: "100vh" }}>
+      <div style={{ background: "white", borderRadius: "12px", padding: "24px", marginBottom: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+        <h1 style={{ marginBottom: 8, color: "#1f2937", fontSize: "28px", fontWeight: "600" }}>🔍 Global Compliance Copilot</h1>
+        <p style={{ color: "#6b7280", marginBottom: 20 }}>AI-powered contract compliance analysis across jurisdictions</p>
+        <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: "12px" }}>
+          <label style={{ fontWeight: "500", color: "#374151" }}>Region:</label>
+          <select 
+            value={region} 
+            onChange={(e) => setRegion(e.target.value)}
+            style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #d1d5db", fontSize: "14px" }}
+          >
+            <option>EU</option>
+            <option>US</option>
+            <option>IN</option>
+          </select>
+          <span style={{ marginLeft: 12, color: "#6b7280", fontSize: "12px" }}>API: {API_BASE}</span>
+        </div>
       </div>
 
       <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div style={box}>
           <h3>Upload contract (PDF)</h3>
-          <input type="file" accept="application/pdf" onChange={(e) => setContractFile(e.target.files?.[0] || null)} />
+          <input 
+            type="file" 
+            accept="application/pdf" 
+            onChange={(e) => setContractFile(e.target.files?.[0] || null)}
+            style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px" }}
+          />
           <div style={{ marginTop: 8 }}>
-            <button onClick={uploadContract}>Upload contract</button>
+            <button onClick={uploadContract} style={buttonStyle}>📄 Upload Contract</button>
           </div>
         </div>
 
         <div style={box}>
           <h3>Add rule (file or text)</h3>
-          <input type="file" accept=".md,.txt,application/pdf" onChange={(e) => setRuleFile(e.target.files?.[0] || null)} />
-          <div style={{ margin: "8px 0" }}>OR</div>
-          <textarea rows={5} style={{ width: "100%" }} placeholder="Paste rule snippet" value={ruleText} onChange={(e) => setRuleText(e.target.value)} />
+          <input 
+            type="file" 
+            accept=".md,.txt,application/pdf" 
+            onChange={(e) => setRuleFile(e.target.files?.[0] || null)}
+            style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px" }}
+          />
+          <div style={{ margin: "8px 0", textAlign: "center", color: "#6b7280", fontWeight: "500" }}>OR</div>
+          <textarea 
+            rows={5} 
+            style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px", resize: "vertical" }} 
+            placeholder="Paste rule snippet..." 
+            value={ruleText} 
+            onChange={(e) => setRuleText(e.target.value)} 
+          />
           <div style={{ marginTop: 8 }}>
-            <button onClick={addRule}>Add rule</button>
+            <button onClick={addRule} style={buttonStyle}>📋 Add Rule</button>
           </div>
         </div>
       </section>
@@ -179,7 +281,7 @@ export default function Home() {
           <div>
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <input value={editorName} onChange={(e) => setEditorName(e.target.value)} style={{ flex: 1 }} />
-              <button onClick={saveRule}>Save</button>
+              <button onClick={saveRule} style={buttonStyle}>💾 Save</button>
             </div>
             <textarea rows={10} style={{ width: "100%" }} value={editorText} onChange={(e) => setEditorText(e.target.value)} />
           </div>
@@ -188,7 +290,7 @@ export default function Home() {
 
       <section style={box}>
         <h3>Run compliance</h3>
-        <button onClick={checkCompliance}>Check</button>
+        <button onClick={checkCompliance} style={{...buttonStyle, background: "#059669", padding: "12px 24px", fontSize: "16px"}}>🔍 Run Compliance Check</button>
       </section>
 
       <section style={box}>
@@ -212,7 +314,7 @@ export default function Home() {
                   <td>{f.category}</td>
                   <td>{f.id}</td>
                   <td>
-                    <button onClick={() => explain(f.id)}>Explain</button>
+                    <button onClick={() => explain(f.id)} style={{...buttonStyle, background: "#7c3aed", padding: "4px 8px", fontSize: "12px"}}>ℹ️ Explain</button>
                   </td>
                 </tr>
               ))}
@@ -220,10 +322,177 @@ export default function Home() {
           </table>
         )}
         <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-          <button onClick={downloadJSON} disabled={flags.length === 0}>Download JSON</button>
-          <button onClick={downloadCSV} disabled={flags.length === 0}>Download CSV</button>
+          <button onClick={downloadJSON} disabled={flags.length === 0} style={{...buttonStyle, background: "#dc2626", opacity: flags.length === 0 ? 0.5 : 1}}>📄 Download JSON</button>
+          <button onClick={downloadCSV} disabled={flags.length === 0} style={{...buttonStyle, background: "#dc2626", opacity: flags.length === 0 ? 0.5 : 1}}>📊 Download CSV</button>
         </div>
       </section>
+
+      {/* Explain Modal */}
+      {showExplainModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: "white",
+            borderRadius: "12px",
+            padding: "24px",
+            maxWidth: "800px",
+            maxHeight: "80vh",
+            width: "90%",
+            overflow: "auto",
+            position: "relative",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.2)"
+          }}>
+            {/* Close button */}
+            <button 
+              onClick={closeExplainModal}
+              style={{
+                position: "absolute",
+                top: "12px",
+                right: "12px",
+                background: "none",
+                border: "none",
+                fontSize: "20px",
+                cursor: "pointer",
+                padding: "4px",
+                borderRadius: "50%",
+                width: "32px",
+                height: "32px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Content */}
+            <h3 style={{ marginTop: 0, marginBottom: "20px", color: "#1f2937" }}>
+              📋 Compliance Explanation
+            </h3>
+
+            {loadingExplain ? (
+              <div style={{ textAlign: "center", padding: "40px" }}>
+                <div style={{ fontSize: "18px", color: "#6b7280" }}>Loading...</div>
+              </div>
+            ) : explainData?.error ? (
+              <div style={{ padding: "16px", background: "#fef2f2", borderRadius: "8px", border: "1px solid #fecaca" }}>
+                <div style={{ color: "#dc2626", fontWeight: "500", marginBottom: "8px" }}>Error</div>
+                <div style={{ color: "#991b1b" }}>{explainData.error}</div>
+                {explainData.rawResponse && (
+                  <details style={{ marginTop: "12px" }}>
+                    <summary style={{ cursor: "pointer", color: "#dc2626" }}>Raw Response</summary>
+                    <pre style={{ 
+                      background: "#f9fafb", 
+                      padding: "8px", 
+                      borderRadius: "4px", 
+                      fontSize: "12px",
+                      overflow: "auto",
+                      marginTop: "8px"
+                    }}>{explainData.rawResponse}</pre>
+                  </details>
+                )}
+              </div>
+            ) : explainData ? (
+              <div>
+                {/* Header Info */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                  <div style={{ padding: "12px", background: "#f3f4f6", borderRadius: "8px" }}>
+                    <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Flag ID</div>
+                    <div style={{ fontWeight: "500" }}>{explainData.id}</div>
+                  </div>
+                  <div style={{ padding: "12px", background: "#f3f4f6", borderRadius: "8px" }}>
+                    <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Region</div>
+                    <div style={{ fontWeight: "500" }}>{explainData.region}</div>
+                  </div>
+                </div>
+
+                {/* Contract Evidence */}
+                <div style={{ marginBottom: "20px" }}>
+                  <h4 style={{ margin: "0 0 12px 0", color: "#374151" }}>📄 Contract Evidence</h4>
+                  {explainData.contract ? (
+                    <div style={{ padding: "16px", background: "#f0f9ff", borderRadius: "8px", border: "1px solid #bae6fd" }}>
+                      <div style={{ marginBottom: "8px" }}>
+                        <strong>File:</strong> <code>{explainData.contract.path}</code>
+                      </div>
+                      {explainData.contract.evidence && (
+                        <div>
+                          <div style={{ marginBottom: "8px" }}>
+                            <strong>Location:</strong> Page {explainData.contract.evidence.page}
+                          </div>
+                          <div style={{ marginBottom: "8px" }}>
+                            <strong>Text Found:</strong> "{explainData.contract.evidence.text || 'Contract field content'}"
+                          </div>
+                          <div style={{ fontSize: "12px", color: "#0c4a6e" }}>
+                            This text was extracted from the contract file during analysis.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ padding: "12px", background: "#f9fafb", borderRadius: "6px", color: "#6b7280" }}>
+                      No contract evidence available
+                    </div>
+                  )}
+                </div>
+
+                {/* Rule Evidence */}
+                <div style={{ marginBottom: "20px" }}>
+                  <h4 style={{ margin: "0 0 12px 0", color: "#374151" }}>📋 Compliance Rule</h4>
+                  {explainData.rule_snippet ? (
+                    <div style={{ padding: "16px", background: "#f0fdf4", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
+                      <div style={{ 
+                        whiteSpace: "pre-wrap", 
+                        fontSize: "14px",
+                        lineHeight: "1.5",
+                        color: "#166534"
+                      }}>
+                        {explainData.rule_snippet}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#15803d", marginTop: "8px" }}>
+                        This rule snippet was matched against your compliance rules.
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ padding: "12px", background: "#f9fafb", borderRadius: "6px", color: "#6b7280" }}>
+                      No rule snippet available
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Section */}
+                <div style={{ display: "flex", gap: "8px", marginTop: "20px" }}>
+                  <button 
+                    onClick={closeExplainModal}
+                    style={{
+                      background: "#6b7280",
+                      color: "white",
+                      border: "none",
+                      padding: "8px 16px",
+                      borderRadius: "6px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
+
+
+

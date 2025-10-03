@@ -11,3 +11,4 @@ async def upload_rule():
     return {"ok": True}
 
 print("Routes:", [r.path for r in app.routes if hasattr(r, 'path')])
+

@@ -9,14 +9,15 @@ from .landingai_client import extract_fields
 from .checker import check
 from .models.schemas import ComplianceFlag, ContractField, Evidence
 from .pathway_pipeline import start_pipeline, add_rule_file, add_contract_file
+from . import __init__ as _pkg  # noqa
 
-APP_TITLE = "Global Compliance Copilot API v2"
+APP_TITLE = "Global Compliance Copilot API"
 app = FastAPI(title=APP_TITLE)
 
-# Allow Next.js on localhost:3000 (adjust if needed)
+# ---------- CORS for Next.js ----------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,15 +29,15 @@ RULES_DIR = BASE_DIR / "rules" / "seed"
 CONTRACTS_DIR.mkdir(parents=True, exist_ok=True)
 RULES_DIR.mkdir(parents=True, exist_ok=True)
 
-# ---------------- Startup ----------------
+# ---------- Startup ----------
 @app.on_event("startup")
 def _startup():
     try:
-        start_pipeline()
+        start_pipeline()  # idempotent
     except Exception:
         pass
 
-# ---------------- Utilities ----------------
+# ---------- Utils ----------
 def _save_upload(file: UploadFile, dest_dir: Path) -> Path:
     dest_dir.mkdir(parents=True, exist_ok=True)
     path = dest_dir / file.filename
@@ -51,12 +52,12 @@ def _latest_contract() -> Optional[Path]:
     pdfs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return pdfs[0]
 
-# ---------------- Health ----------------
+# ---------- Health ----------
 @app.get("/health")
 def health():
     return {"ok": True}
 
-# ---------------- Rule upload (file) ----------------
+# ---------- Upload rule (file) ----------
 @app.post("/upload_rule")
 async def upload_rule(file: UploadFile = File(...)) -> dict:
     path = _save_upload(file, RULES_DIR)
@@ -64,9 +65,15 @@ async def upload_rule(file: UploadFile = File(...)) -> dict:
         add_rule_file(str(path))
     except Exception:
         pass
+    # Always add to in-memory rules store for immediate compliance checking
+    try:
+        content = path.read_text(errors="ignore")
+        add_rule_text(content)
+    except Exception:
+        pass
     return {"ok": True, "path": str(path)}
 
-# ---------------- Contract upload (file) ----------------
+# ---------- Upload contract (file) ----------
 @app.post("/upload_contract")
 async def upload_contract(file: UploadFile = File(...)) -> dict:
     path = _save_upload(file, CONTRACTS_DIR)
@@ -80,7 +87,7 @@ async def upload_contract(file: UploadFile = File(...)) -> dict:
         json.dump([f_.model_dump() for f_ in fields], f, ensure_ascii=False, indent=2)
     return {"ok": True, "path": str(path), "fields": [f_.model_dump() for f_ in fields]}
 
-# ---------------- Check + Explain ----------------
+# ---------- Check + Explain ----------
 @app.get("/check", response_model=List[ComplianceFlag])
 def run_check(
     region: str = Query("EU", pattern="^(EU|US|IN)$"),
@@ -123,7 +130,7 @@ def explain_flag(id: str, region: str = "EU") -> dict:
         "rule_snippet": rule_text[:2000],
     }
 
-# ---------------- Inline Rule Editor APIs ----------------
+# ---------- Inline Rule Editor ----------
 @app.get("/rules")
 def list_rules() -> dict:
     items = []
@@ -158,12 +165,9 @@ def get_rule(name: str) -> dict:
 
 @app.post("/rule")
 def save_rule(payload: dict) -> dict:
-    name = (payload.get("name") or '').strip()
-    if not name:
-        name = "rule_snippet.md"
-    else:
-        if "." not in name:
-            name += ".md"
+    name = (payload.get("name") or "rule_snippet.md").strip()
+    if "." not in name:
+        name += ".md"
     text = payload.get("text", "")
     p = RULES_DIR / name
     p.write_text(text, encoding="utf-8")

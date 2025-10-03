@@ -7,7 +7,11 @@ _RULES: List[str] = []
 
 def start_pipeline():
     """Initialize Pathway pipeline. Placeholder for now."""
-    pass
+    # Load existing seed rules into memory
+    seed_dir = Path(__file__).parent / "rules" / "seed"
+    for rule_file in seed_dir.glob("*.md"):
+        if rule_file.is_file():
+            _RULES.append(rule_file.read_text(errors="ignore"))
 
 def add_rule_text(text: str):
     _RULES.append(text)
