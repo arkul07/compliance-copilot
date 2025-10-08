@@ -1,0 +1,134 @@
+Sample Contract Document
+
+This is a placeholder PDF file for testing the compliance copilot system.
+In a real implementation, this would be an actual PDF contract document.
+
+The system will extract text and analyze it for compliance issues.
+
+
+<!-- CORRECTION: Add explicit consent clause -->
+<!-- TEMPLATE: The data subject has provided explicit, informed, and unambiguous consent for the processing of their personal data. -->
+
+
+<!-- CORRECTION: Add explicit consent clause -->
+<!-- TEMPLATE: The data subject has provided explicit, informed, and unambiguous consent for the processing of their personal data. -->
+
+
+<!-- CORRECTION: Add explicit consent clause -->
+<!-- TEMPLATE: The data subject has provided explicit, informed, and unambiguous consent for the processing of their personal data. -->
+
+
+<!-- CORRECTION: Add explicit consent clause -->
+<!-- TEMPLATE: The data subject has provided explicit, informed, and unambiguous consent for the processing of their personal data. -->
+
+
+<!-- CORRECTION: Add explicit consent clause -->
+<!-- TEMPLATE: The data subject has provided explicit, informed, and unambiguous consent for the processing of their personal data. -->
+
+
+<!-- CORRECTION: Add explicit consent clause -->
+<!-- TEMPLATE: The data subject has provided explicit, informed, and unambiguous consent for the processing of their personal data. -->
+
+
+<!-- CORRECTION: Add explicit consent clause -->
+<!-- TEMPLATE: The data subject has provided explicit, informed, and unambiguous consent for the processing of their personal data. -->
+
+
+<!-- CORRECTION: Add explicit consent clause -->
+<!-- TEMPLATE: The data subject has provided explicit, informed, and unambiguous consent for the processing of their personal data. -->
+
+
+<!-- CORRECTION: Add explicit consent clause -->
+<!-- TEMPLATE: The data subject has provided explicit, informed, and unambiguous consent for the processing of their personal data. -->
+
+
+<!-- CORRECTION: Add explicit consent clause -->
+<!-- TEMPLATE: The data subject has provided explicit, informed, and unambiguous consent for the processing of their personal data. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
+
+
+<!-- CORRECTION: Add proper tax withholding clause -->
+<!-- TEMPLATE: All applicable taxes shall be withheld and remitted in accordance with local tax regulations. -->
+
+
+<!-- CORRECTION: Add proper tax withholding clause -->
+<!-- TEMPLATE: All applicable taxes shall be withheld and remitted in accordance with local tax regulations. -->
+
+
+<!-- CORRECTION: Add proper tax withholding clause -->
+<!-- TEMPLATE: All applicable taxes shall be withheld and remitted in accordance with local tax regulations. -->
+
+
+<!-- CORRECTION: Add proper tax withholding clause -->
+<!-- TEMPLATE: All applicable taxes shall be withheld and remitted in accordance with local tax regulations. -->
+
+
+<!-- CORRECTION: Add proper tax withholding clause -->
+<!-- TEMPLATE: All applicable taxes shall be withheld and remitted in accordance with local tax regulations. -->
+
+
+<!-- CORRECTION: Add proper tax withholding clause -->
+<!-- TEMPLATE: All applicable taxes shall be withheld and remitted in accordance with local tax regulations. -->
+
+
+<!-- CORRECTION: Add proper tax withholding clause -->
+<!-- TEMPLATE: All applicable taxes shall be withheld and remitted in accordance with local tax regulations. -->
+
+
+<!-- CORRECTION: Add proper tax withholding clause -->
+<!-- TEMPLATE: All applicable taxes shall be withheld and remitted in accordance with local tax regulations. -->
+
+
+<!-- CORRECTION: Add proper tax withholding clause -->
+<!-- TEMPLATE: All applicable taxes shall be withheld and remitted in accordance with local tax regulations. -->
+
+
+<!-- CORRECTION: Add proper tax withholding clause -->
+<!-- TEMPLATE: All applicable taxes shall be withheld and remitted in accordance with local tax regulations. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
+
+
+<!-- CORRECTION: Review and update clause for compliance -->
+<!-- TEMPLATE: This clause shall comply with all applicable laws and regulations. -->
